@@ -137,9 +137,6 @@ node tests/maze.test.js   # 迷宫生成 + BFS
 node tests/los.test.js    # 视线遮挡 + FOV 收敛
 ```
 
-## 部署
-
-见 [DEPLOY.md](DEPLOY.md)：GitHub Pages / Gitee Pages / 本地局域网 三种方式。
 
 ## License
 
