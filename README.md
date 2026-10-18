@@ -119,7 +119,6 @@ maze-game/
 ├── tests/
 │   ├── maze.test.js        # 55 项算法测试
 │   └── los.test.js         # 24 项视线/迷雾测试
-└── standalone.html          # 单文件版（全部内联，可离线分享）
 ```
 
 ## 本地运行
