@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="迷宫逃生 —— 基于迭代 DFS 迷宫生成、BFS 怪物寻路与局部 BFS 视线追踪的网页小游戏">
+<meta property="og:title" content="迷宫逃生 · Maze Escape">
+<meta property="og:description" content="在黑暗中找到出口，别让它们先找到你。迭代 DFS · BFS 寻路 · 视线迷雾">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/social-preview.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#070a11">
+<title>迷宫逃生 · Maze Escape</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌀</text></svg>">
+</head>
+<body>
+
+<!-- 顶栏 -->
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">◈</span>
+    <span class="brand-text">迷宫逃生</span>
+    <span class="brand-sub">Maze Escape</span>
+  </div>
+
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">用时</span>
+      <span class="hud-value" id="hud-time">00:00.0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">步数</span>
+      <span class="hud-value" id="hud-moves">0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">难度</span>
+      <span class="hud-value" id="hud-diff">中等</span>
+    </div>
+    <button class="stealth-btn hidden" id="btn-stealth" title="隐身 5 秒，冷却 20 秒（空格）">
+      <span class="stealth-icon">◌</span>
+      <span class="stealth-txt">隐身</span>
+      <span class="stealth-key">空格</span>
+    </button>
+    <button class="stealth-btn hint-btn hidden" id="btn-hint" title="高亮通往出口的路线，冷却 30 秒（Q）">
+      <span class="stealth-icon">⌖</span>
+      <span class="stealth-txt">路线</span>
+      <span class="stealth-key">Q</span>
+    </button>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-ghost" id="btn-pause" title="暂停 / 继续 (ESC)">
+      <span id="pause-icon">❚❚</span>
+    </button>
+    <button class="btn btn-ghost" id="btn-rank" title="查看排行榜">排行榜</button>
+    <button class="btn btn-ghost" id="btn-custom" title="外观设置">外观</button>
+    <button class="btn btn-ghost" id="btn-help" title="游戏说明">?</button>
+  </div>
+</header>
+
+<!-- 主区域 -->
+<main class="stage">
+  <div class="canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- 小地图（右上角悬浮） -->
+    <div class="minimap-wrap hidden" id="minimap-wrap">
+      <canvas id="minimap-canvas"></canvas>
+      <div class="minimap-legend">
+        <span><i class="dot dot-player"></i>你</span>
+        <span><i class="dot dot-exit"></i>出口</span>
+        <span><i class="dot dot-dead"></i>死路</span>
+      </div>
+    </div>
+
+    <!-- 开始遮罩 -->
+    <div class="overlay" id="overlay-start">
+      <div class="panel panel-start">
+        <h1 class="title">迷宫逃生</h1>
+        <p class="subtitle">在黑暗中找到出口，别让它们先找到你</p>
+
+        <div class="diff-group" id="diff-group">
+          <button class="diff-card" data-diff="easy">
+            <span class="diff-name">简易</span>
+            <span class="diff-meta">11 × 11 · 1 只怪物</span>
+            <span class="diff-hint">适合首次体验</span>
+          </button>
+          <button class="diff-card is-active" data-diff="normal">
+            <span class="diff-name">中等</span>
+            <span class="diff-meta">17 × 17 · 2 只怪物</span>
+            <span class="diff-hint">推荐难度</span>
+          </button>
+          <button class="diff-card" data-diff="hard">
+            <span class="diff-name">困难</span>
+            <span class="diff-meta">25 × 25 · 3 只怪物</span>
+            <span class="diff-hint">视野更窄</span>
+          </button>
+        </div>
+
+        <button class="btn btn-primary btn-lg" id="btn-start">开始游戏</button>
+        <p class="kbd-tip kbd-tip-desktop">
+          使用 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 或 <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> 移动
+        </p>
+        <p class="kbd-tip kbd-tip-touch">滑动画面或点右下方向键移动</p>
+
+        <!-- 当前视角的极简玩法提示：随视角自动切换文案 -->
+        <div class="view-guide" id="start-view-guide">
+          <span class="vg-tag" id="start-vg-tag">2D 俯视</span>
+          <span class="vg-text" id="start-vg-text">整张迷宫平铺在屏幕上，方向与按键完全一致，迷路时最不容易看反。</span>
+        </div>
+
+        <button class="btn btn-ghost btn-customize" id="btn-custom-start">✎ 自定义角色与场景</button>
+      </div>
+    </div>
+
+    <!-- 暂停遮罩 -->
+    <div class="overlay hidden" id="overlay-pause">
+      <div class="panel panel-narrow">
+        <h2 class="panel-title">已暂停</h2>
+        <p class="panel-desc">按 <kbd>ESC</kbd> 或点击下方按钮继续</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-resume">继续游戏</button>
+          <button class="btn btn-ghost" id="btn-restart">重新开始</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 胜利遮罩 -->
+    <div class="overlay hidden" id="overlay-win">
+      <div class="panel panel-result">
+        <div class="result-icon win-icon">✦</div>
+        <h2 class="panel-title" id="win-title">成功逃脱</h2>
+        <div class="result-stats">
+          <div class="stat">
+            <span class="stat-value" id="win-time">0.00</span>
+            <span class="stat-label">秒</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="win-moves">0</span>
+            <span class="stat-label">步</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="win-diff">中等</span>
+            <span class="stat-label">难度</span>
+          </div>
+        </div>
+
+        <p class="best-line" id="best-line"></p>
+
+        <div class="submit-row">
+          <input type="text" id="input-username" class="text-input" maxlength="12"
+                 placeholder="输入昵称，上榜" autocomplete="off">
+          <button class="btn btn-primary" id="btn-submit">提交成绩</button>
+        </div>
+        <p class="submit-status" id="submit-status"></p>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="btn-again">再来一局</button>
+          <button class="btn btn-ghost" id="btn-view-rank">看排行榜</button>
+          <button class="btn btn-ghost" id="btn-home-win">返回首页</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 失败遮罩 -->
+    <div class="overlay hidden" id="overlay-lose">
+      <div class="panel panel-result">
+        <div class="result-icon lose-icon">✕</div>
+        <h2 class="panel-title">被抓住了</h2>
+        <p class="panel-desc" id="lose-desc">它们在黑暗中找到了你。</p>
+        <div class="result-stats">
+          <div class="stat">
+            <span class="stat-value" id="lose-time">0.00</span>
+            <span class="stat-label">秒</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="lose-moves">0</span>
+            <span class="stat-label">步</span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-retry">再来一次</button>
+          <button class="btn btn-ghost" id="btn-back-home">返回首页</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 排行榜弹窗 -->
+<div class="modal hidden" id="modal-rank">
+  <div class="modal-mask" data-close="rank"></div>
+  <div class="modal-body">
+    <div class="modal-head">
+      <h2>排行榜 <span class="rank-scope" id="rank-scope">Top 10</span></h2>
+      <button class="btn-close" data-close="rank" aria-label="关闭">×</button>
+    </div>
+
+    <div class="tabs" id="rank-tabs">
+      <button class="tab is-active" data-size="">全部</button>
+      <button class="tab" data-size="简单">简易</button>
+      <button class="tab" data-size="中等">中等</button>
+      <button class="tab" data-size="困难">困难</button>
+    </div>
+
+    <div class="rank-list" id="rank-list">
+      <div class="rank-empty">加载中…</div>
+    </div>
+
+    <p class="rank-source" id="rank-source"></p>
+  </div>
+</div>
+
+<!-- 外观自定义弹窗 -->
+<div class="modal hidden" id="modal-custom">
+  <div class="modal-mask" data-close="custom"></div>
+  <div class="modal-body modal-wide">
+    <div class="modal-head">
+      <h2>外观设置</h2>
+      <button class="btn-close" data-close="custom" aria-label="关闭">×</button>
+    </div>
+
+    <!-- 角色预览 -->
+    <div class="preview-box">
+      <canvas id="preview-canvas" width="900" height="360"></canvas>
+      <div class="preview-label" id="preview-label">奶黄龙 · 午夜蓝</div>
+    </div>
+
+    <div class="setting-block">
+      <div class="setting-title">
+        <span>角色外形</span>
+        <span class="setting-hint">配色 + 体型，实时预览</span>
+      </div>
+      <div class="skin-grid" id="skin-grid"></div>
+    </div>
+
+    <div class="setting-block">
+      <div class="setting-title">
+        <span>视角</span>
+        <span class="setting-hint">2.5D 立体斜视 / 2D 平面俯视</span>
+      </div>
+      <div class="view-switch" id="view-switch">
+        <button class="view-card" data-view="2d">
+          <span class="view-icon">▦</span>
+          <span class="skin-info">
+            <span class="skin-name">2D 俯视</span>
+            <span class="skin-desc">平面全图，路线最清晰</span>
+          </span>
+        </button>
+        <button class="view-card" data-view="iso">
+          <span class="view-icon">◈</span>
+          <span class="skin-info">
+            <span class="skin-name">2.5D 等距</span>
+            <span class="skin-desc">斜视立体，墙有高度</span>
+          </span>
+        </button>
+        <button class="view-card" data-view="3d">
+          <span class="view-icon">◆</span>
+          <span class="skin-info">
+            <span class="skin-name">3D 立体</span>
+            <span class="skin-desc">WebGL 真三维，沉浸感最强</span>
+          </span>
+        </button>
+      </div>
+
+      <!-- 当前视角的玩法说明（随选中卡片切换） -->
+      <div class="view-guide view-guide-block" id="custom-view-guide">
+        <div class="vg-head">
+          <span class="vg-tag" id="custom-vg-tag">2D 俯视</span>
+          <span class="vg-skill" id="custom-vg-skill">路线提示：可用</span>
+        </div>
+        <ul class="vg-list" id="custom-vg-list"></ul>
+      </div>
+    </div>
+
+    <div class="setting-block">
+      <div class="setting-title">
+        <span>场景主题</span>
+        <span class="setting-hint">墙体与地板配色</span>
+      </div>
+      <div class="theme-grid" id="theme-grid"></div>
+    </div>
+
+    <div class="setting-foot">
+      <button class="btn btn-ghost" id="btn-reset-look">恢复默认</button>
+      <button class="btn btn-primary" data-close="custom">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- 说明弹窗 -->
+<div class="modal hidden" id="modal-help">
+  <div class="modal-mask" data-close="help"></div>
+  <div class="modal-body">
+    <div class="modal-head">
+      <h2>游戏说明</h2>
+      <button class="btn-close" data-close="help" aria-label="关闭">×</button>
+    </div>
+    <div class="help-content">
+      <h3>目标</h3>
+      <p>从左上角出发，在怪物追上你之前抵达右下角发光的 <b class="hl-gold">出口</b>。</p>
+
+      <h3>操作</h3>
+      <table class="kbd-table">
+        <tr><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></td><td>上下左右移动</td></tr>
+        <tr><td><kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd></td><td>上下左右移动</td></tr>
+        <tr><td><kbd>空格</kbd></td><td>隐身 5 秒（冷却 20 秒）</td></tr>
+        <tr><td><kbd>Q</kbd></td><td>显示通往出口的路线（冷却 30 秒，2D / 2.5D 可用）</td></tr>
+        <tr><td><kbd>ESC</kbd></td><td>暂停 / 继续</td></tr>
+        <tr><td>触屏滑动</td><td>移动端可用</td></tr>
+      </table>
+
+      <h3>三个视角怎么选</h3>
+      <p>同一张迷宫，三种看法。切到哪个视角，就用那个视角的读法。</p>
+
+      <div class="view-help">
+        <div class="vh-item">
+          <div class="vh-head"><span class="vh-icon">▦</span>2D 俯视</div>
+          <p class="vh-how">整张迷宫平铺在屏幕上，上下左右和按键<strong>完全一致</strong>。</p>
+          <ul>
+            <li>看全图，先规划一条大致方向再走</li>
+            <li>迷雾只遮未探索区域，走过的路会留暗影</li>
+            <li><b class="hl-gold">路线提示最好用</b>：整条路能一次看全</li>
+          </ul>
+        </div>
+
+        <div class="vh-item">
+          <div class="vh-head"><span class="vh-icon">◈</span>2.5D 等距</div>
+          <p class="vh-how">斜 45° 俯视，墙壁有高度。<strong>屏幕左上＝迷宫的左上</strong>，两个斜向就是两个方向键的组合。</p>
+          <ul>
+            <li>往屏幕左上走 = 同时按 W + A</li>
+            <li>远处会被高墙挡住，注意墙后的岔口</li>
+            <li><b class="hl-gold">路线提示可用</b>：会在地上铺出一串金色引路石</li>
+          </ul>
+        </div>
+
+        <div class="vh-item">
+          <div class="vh-head"><span class="vh-icon">◆</span>3D 立体</div>
+          <p class="vh-how">真实第一人称高度的俯视。<strong>屏幕永远是"上北下南"</strong>，方向键就是地图方向，镜头不会跟着你转。</p>
+          <ul>
+            <li>视角离地低，只能看清身前几格，靠小地图辨向</li>
+            <li>适合追求沉浸感和紧张感</li>
+            <li>此视角<b class="hl-red">不提供路线提示</b>（远处路径必被墙遮住，给了也没用）</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>两个技能</h3>
+      <table class="kbd-table">
+        <tr>
+          <td><b class="hl-teal">隐身</b> <kbd>空格</kbd></td>
+          <td>持续 5 秒，冷却 20 秒。怪物看不见你、也抓不到你，正在追你的会立刻丢失目标。</td>
+        </tr>
+        <tr>
+          <td><b class="hl-gold">路线提示</b> <kbd>Q</kbd></td>
+          <td>持续 6 秒，冷却 30 秒。<b>完美迷宫任意两点仅一条通路</b>，所以亮出来的就是唯一解，不会出现"另一条更短的"。</td>
+        </tr>
+      </table>
+
+      <h3>规则</h3>
+      <ul>
+        <li>黑暗中只能看见身周一小圈，<b class="hl-teal">走过的路</b>会留下暗淡的轮廓。</li>
+        <li><b class="hl-red">怪物</b>只在你进入它视野且中间没有墙时才追你 —— 拐个弯就能甩掉。</li>
+        <li>墙体会阻断视线：隔着墙你看不见它，它也一样看不见你。</li>
+        <li>难度越高，迷宫越大、怪物越多、视线越窄。</li>
+      </ul>
+
+      <h3>技术实现</h3>
+      <ul class="tech-list">
+        <li><b>迭代式 DFS</b> 生成单连通无环迷宫（显式栈，规避递归爆栈）</li>
+        <li><b>BFS</b> 计算怪物到玩家的最短路径（每 0.25s 重算一次）</li>
+        <li><b>局部 BFS + Bresenham 视线追踪</b> 实现带遮挡的迷雾视野</li>
+        <li><b>BFS 唯一路径回溯</b> 支撑路线提示技能（复用生成树的唯一性）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+    <!-- 移动端虚拟方向键（ coarse 指针设备显示） -->
+    <div class="dpad" id="dpad" aria-label="方向控制">
+      <button class="dpad-btn dpad-up" data-dir="up" aria-label="上">▲</button>
+      <button class="dpad-btn dpad-left" data-dir="left" aria-label="左">◀</button>
+      <button class="dpad-btn dpad-right" data-dir="right" aria-label="右">▶</button>
+      <button class="dpad-btn dpad-down" data-dir="down" aria-label="下">▼</button>
+      <span class="dpad-center"></span>
+    </div>
+
+    <!-- 轻提示 -->
+    <div class="toast" id="toast"></div>
+
+<!-- 脚本：按依赖顺序加载 -->
+<script src="js/maze.js"></script>
+<script src="js/los.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/themes.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/minimap.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="js/iso.js"></script>
+<script src="js/iso3d.js"></script>
+<script src="js/render.js"></script>
+<script src="js/game.js"></script>
+<script src="js/bmob.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

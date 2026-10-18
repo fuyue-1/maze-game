@@ -1,0 +1,68 @@
+name: Test & Deploy
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # 第一步：跑算法单元测试，测试挂了就不发布
+  test:
+    name: 算法单元测试
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 迷宫生成与 BFS 测试
+        run: node tests/maze.test.js
+
+      - name: 视线追踪与迷雾测试
+        run: node tests/los.test.js
+
+  # 第二步：测试通过后发布到 GitHub Pages
+  deploy:
+    name: 部署到 GitHub Pages
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 准备站点目录
+        run: |
+          mkdir -p _site
+          cp -r index.html css js _site/
+          # 单文件版也一并发布，便于直接下载分享
+          cp standalone.html _site/ 2>/dev/null || true
+
+      - name: 打包站点
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 只发布游戏本体，不把 tests 和文档推上线上
+          path: _site
+
+      - name: 发布
+        id: deployment
+        uses: actions/deploy-pages@v4
