@@ -106,6 +106,16 @@ body {
   gap: 8px;
 }
 
+/* 音效开关：宽度固定，避免 ♪ / ✕ 切换时顶栏抖动 */
+.btn-sound {
+  min-width: 34px;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 15px;
+  line-height: 1;
+}
+.btn-sound.is-off { opacity: 0.55; }
+
 /* ---- 隐身技能按钮 ---- */
 .stealth-btn {
   display: flex;
@@ -1599,6 +1609,8 @@ kbd {
   #btn-rank { font-size: 0; padding: 6px 8px; }
   #btn-rank::before { content: '榜'; font-size: 11px; }
   #btn-custom { display: none; }
+  /* 音效按钮在手机上收窄，给 HUD 腾出空间 */
+  .btn-sound { min-width: 28px; font-size: 13px; }
 }
 
 @media (max-height: 620px) {

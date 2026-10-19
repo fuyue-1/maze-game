@@ -125,6 +125,8 @@ const Game = (function () {
     Renderer.init(canvasEl);
     window.addEventListener('resize', () => Renderer.onResize());
     bindInput();
+    // 音频常驻：首页也要有背景音乐，所以不等开局才启动
+    startAudioLoop();
   }
 
   /** 切换视角：'iso'（等距 2.5D，默认）或 '2d'（俯视） */
@@ -552,6 +554,37 @@ const Game = (function () {
 
     Renderer.draw(state, dt);
     if (Minimap) Minimap.draw(state);
+  }
+
+  /**
+   * 音频驱动循环（常驻，与渲染循环解耦）
+   * ------------------------------------------------------------
+   * 为什么不用 loop() 驱动：
+   *   1. rAF 只在 'playing' 时跑，暂停/首页时根本不调用，
+   *      而首页恰恰需要背景音乐；
+   *   2. 暂停瞬间音乐要平滑淡下去，不能停在半音量上。
+   * 这里用常驻 setInterval（100ms / 10Hz），
+   * 对"距离→音量"这种缓变量足够细腻，也不受渲染帧率影响。
+   * 唯一停它的时机是页面关闭（自然销毁）。
+   */
+  let audioTimer = 0;
+  let lastAudioTs = 0;
+
+  function startAudioLoop() {
+    if (audioTimer) return;
+    lastAudioTs = performance.now();
+    audioTimer = setInterval(() => {
+      if (typeof Sfx === 'undefined') return;
+      const now = performance.now();
+      // 钳制：标签页在后台时 interval 会被节流，避免一次补太多
+      let dt = Math.min(0.25, (now - lastAudioTs) / 1000);
+      lastAudioTs = now;
+      Sfx.update(state, dt);
+    }, 100);
+  }
+
+  function stopAudioLoop() {
+    if (audioTimer) { clearInterval(audioTimer); audioTimer = 0; }
   }
 
   /** 玩家移动插值：让格子间的移动看起来是滑动的 */

@@ -45,6 +45,14 @@ const Iso3D = (function () {
   let playerGroup = null;
   let playerMats = null;   // { body, accent } 换皮肤时直接改这两个材质
   let playerHorns = [];
+  // 朝向容器：左手坐标系下「面向 -Z」= 模型正面朝前，
+  // 朝向交给外层 group 的 rotation.y，尾巴/手脚的摆动只在容器内做，
+  // 两者互不干扰（否则一摆动就把朝向拧歪）
+  let playerBody = null;
+  let playerTail = null;
+  let playerArms = [];
+  let playerLegs = [];
+  let faceAngle = Math.PI / 2;   // 当前朝向（平滑插值后的值）
   let monsterGroups = [];
   let portalGroup = null;
 
@@ -157,6 +165,11 @@ const Iso3D = (function () {
     // 角型：long 时把圆锥拉长，让"夜行龙 / 熔岩龙"不只是换个色
     const hs = SKIN3D.hornStyle === 'long' ? 1.7 : 1;
     for (const h of playerHorns) h.scale.set(1, hs, 1);
+    // 四肢跟随 accent，否则换皮肤后手臂还是旧颜色
+    if (playerMats.limbs) {
+      playerMats.limbs.color.copy(accent);
+      playerMats.limbs.needsUpdate = true;
+    }
   }
 
   /** 背景 / 雾 / 灯光：跟随主题 */
@@ -350,6 +363,8 @@ const Iso3D = (function () {
     if (floorMesh) { scene.remove(floorMesh); floorMesh.geometry.dispose(); floorMesh = null; }
     if (wallMesh) { scene.remove(wallMesh); wallMesh.geometry.dispose(); wallMesh = null; }
     if (playerGroup) { scene.remove(playerGroup); playerGroup = null; }
+    // 角色被重建时旧的尾巴/四肢引用要一起清掉，否则会指向上一个场景
+    playerBody = null; playerTail = null; playerArms = []; playerLegs = [];
     for (const g of monsterGroups) scene.remove(g);
     monsterGroups = [];
     if (portalGroup) { scene.remove(portalGroup); portalGroup = null; }
@@ -443,6 +458,8 @@ const Iso3D = (function () {
     });
     playerMats = { body: bodyMat, accent: accentMat };
     playerHorns = [];
+    playerArms = [];
+    playerLegs = [];
 
     // 脚下光环：固定俯视角下只能看到头顶，加一圈皮肤色光环，
     // 让"角色选择"在 3D 里也一眼可辨（同时强化"你在这里"的定位感）
@@ -459,36 +476,72 @@ const Iso3D = (function () {
     g.add(ring);
     playerMats.ring = ringMat;
 
+    // 躯干下面的容器：所有"会摆动"的部件都挂在 b 上，
+    // 朝向只改 g.rotation.y，摆尾/摆臂只改 b 内部的 rotation
+    const b = new THREE.Group();
+    g.add(b);
+    playerBody = b;
+
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 12), bodyMat);
     body.position.y = 0.2;
     body.scale.set(1, 0.92, 1);
-    g.add(body);
+    b.add(body);
 
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 14), bodyMat);
     head.position.y = 0.52;
-    g.add(head);
+    b.add(head);
 
-    // 眼睛
+    // 眼睛（+Z 为正面）
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0x121a26 });
     for (const sx of [-0.1, 0.1]) {
       const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), eyeMat);
       eye.position.set(sx, 0.56, 0.22);
-      g.add(eye);
+      b.add(eye);
     }
 
     // 角
     for (const sx of [-0.12, 0.12]) {
       const horn = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 8), accentMat);
       horn.position.set(sx, 0.74, 0);
-      g.add(horn);
+      b.add(horn);
       playerHorns.push(horn);
     }
 
-    // 尾巴
-    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.3, 8), accentMat);
-    tail.position.set(0, 0.22, -0.26);
-    tail.rotation.x = Math.PI / 2.4;
-    g.add(tail);
+    // ---- 尾巴：绕根部枢轴摆动 ----
+    // 用一个空组当"关节"，尾巴网格在组内偏移，
+    // 这样旋转 pivot 时尾巴是绕着屁股转，而不是绕自己中心转。
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 0.2, -0.18);
+    b.add(tailPivot);
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.062, 0.34, 8), accentMat);
+    tail.position.set(0, 0.02, -0.15);
+    tail.rotation.x = -Math.PI / 2.15;   // 向后上方翘起
+    tailPivot.add(tail);
+    // 尾尖小球，摆动时更容易看出来
+    const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), accentMat);
+    tailTip.position.set(0, 0.085, -0.31);
+    tailPivot.add(tailTip);
+    playerTail = tailPivot;
+
+    // ---- 四肢：走路时前后摆动，方向感更明确 ----
+    const limbMat = new THREE.MeshLambertMaterial({
+      color: parseColor(SKIN3D.accent || SKIN3D.bodyDark, 0xff9f43)
+    });
+    playerMats.limbs = limbMat;
+
+    for (const sx of [-0.11, 0.11]) {
+      const arm = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), limbMat);
+      arm.position.set(sx, 0.18, 0.06);
+      arm.userData.baseZ = arm.position.z;
+      b.add(arm);
+      playerArms.push(arm);
+    }
+    for (const sx of [-0.1, 0.1]) {
+      const leg = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), limbMat);
+      leg.position.set(sx, 0.045, -0.02);
+      b.add(leg);
+      playerLegs.push(leg);
+    }
 
     return g;
   }
@@ -546,10 +599,37 @@ const Iso3D = (function () {
     // ---- 玩家 ----
     if (playerGroup) {
       playerGroup.position.set(p.renderX + 0.5, 0, p.renderY + 0.5);
-      playerGroup.rotation.y = Math.atan2(p.dir.x, p.dir.y);
+
+      // ---- 朝向 ----
+      // 模型眼睛在 +Z 面。世界坐标里 (dir.x, dir.y) 对应 (X, Z)。
+      // 要让 +Z 转到 (dir.x, dir.y)，绕 Y 轴需要 atan2(dir.x, dir.y)。
+      // 用最短弧插值，避免从右转左时绕一大圈（170° → 190° 要跨过 ±π）。
+      const targetAngle = Math.atan2(p.dir.x, p.dir.y);
+      let delta = targetAngle - faceAngle;
+      while (delta > Math.PI) delta -= Math.PI * 2;
+      while (delta < -Math.PI) delta += Math.PI * 2;
+      faceAngle += delta * Math.min(1, dt * 14);
+      playerGroup.rotation.y = faceAngle;
+
       // 走路上下浮动
       const bob = Math.sin((state.walkPhase || 0) * Math.PI * 2) * 0.045;
       playerGroup.position.y = Math.abs(bob);
+
+      // ---- 尾巴摆动 ----
+      // 双频叠加：主摆动 + 略快的次级摆动，看起来不像机械钟摆。
+      // 静止时也在轻微摆（尾巴不该是死的），移动时幅度更大。
+      const moving = p.moveT < 1 ? 1 : 0;
+      const t = clock;
+      const sway = Math.sin(t * (moving ? 7.5 : 2.2)) * (moving ? 0.42 : 0.16)
+                 + Math.sin(t * 3.1) * 0.07;
+      if (playerTail) {
+        playerTail.rotation.y = sway;
+        playerTail.rotation.x = -0.12 + Math.sin(t * 2.4) * 0.06;
+      }
+      // 四肢前后摆动（与步态相位同步）
+      const swing = Math.sin((state.walkPhase || 0) * Math.PI * 2) * (moving ? 0.1 : 0);
+      playerArms.forEach((a, i) => { a.position.z = a.userData.baseZ + (i ? -swing : swing); });
+      playerLegs.forEach((l, i) => { l.position.z = (i ? -swing : swing) * 1.4; });
 
       // 隐身中：整体半透明（光环回落到自己的基准透明度，不能一律设 1）
       const ghost = state.stealthT > 0;

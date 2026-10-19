@@ -232,6 +232,9 @@
     $('submit-status').textContent = '';
     $('submit-status').className = 'submit-status';
 
+    // 音频必须在用户手势内解锁，否则 AudioContext 一直是 suspended
+    if (typeof Sfx !== 'undefined') Sfx.unlock();
+
     Game.start(currentDiff);
     // 新迷宫的静态层已由 Game 触发 layout 重建，
     // 这里再同步一次主题，确保换过主题后新局用的是最新配色
@@ -515,6 +518,16 @@
   // ==================== 事件绑定 ====================
 
   function bindEvents() {
+    // ---- 音效开关 ----
+    // 用符号 ♪ / ✕ 而不是 emoji：部分安卓机型会把 emoji 渲染成彩色方块
+    const syncSoundBtn = () => {
+      const on = typeof Sfx === 'undefined' ? false : Sfx.isOn();
+      const btn = $('btn-sound');
+      if (!btn) return;
+      btn.classList.toggle('is-off', !on);
+      btn.querySelector('#sound-icon').textContent = on ? '♪' : '✕';
+      btn.title = on ? '音效开（点击静音）' : '音效已关（点击开启）';
+    };
     // ---- 难度选择 ----
     $('diff-group').addEventListener('click', (e) => {
       const card = e.target.closest('.diff-card');
@@ -525,6 +538,21 @@
       });
       $('hud-diff').textContent = Game.DIFFICULTY[currentDiff].name;
     });
+
+    // ---- 音频解锁 ----
+    // 浏览器强制要求 AudioContext 在用户手势内创建。
+    // 这里监听"页面上任意第一次点击/触摸"，用户随便点一下就起 BGM，
+    // 不用等到点"开始游戏"，首页就有音乐。
+    const unlockAudio = () => {
+      if (typeof Sfx !== 'undefined') Sfx.unlock();
+      syncSoundBtn();
+      window.removeEventListener('pointerdown', unlockAudio, true);
+      window.removeEventListener('touchstart', unlockAudio, true);
+      window.removeEventListener('keydown', unlockAudio, true);
+    };
+    window.addEventListener('pointerdown', unlockAudio, true);
+    window.addEventListener('touchstart', unlockAudio, true);
+    window.addEventListener('keydown', unlockAudio, true);
 
     // ---- 开始 ----
     $('btn-start').addEventListener('click', startGame);
@@ -578,6 +606,16 @@
       if (!tab) return;
       renderRank(tab.dataset.size);
     });
+
+    $('btn-sound').addEventListener('click', () => {
+      if (typeof Sfx === 'undefined') return;
+      // 第一次点击同时承担解锁职责
+      Sfx.unlock();
+      const on = Sfx.toggle();
+      syncSoundBtn();
+      toast(on ? '音效已开启' : '音效已静音', 1200);
+    });
+    syncSoundBtn();
 
     // ---- 说明 ----
     $('btn-help').addEventListener('click', () => {
@@ -832,6 +870,7 @@
 
       onWin: (result) => {
         lastResult = result;
+        if (typeof Sfx !== 'undefined') Sfx.sting('win');
 
         const isBest = updateBest(result.difficultyKey, result.time);
         const best = getBest(result.difficultyKey);
@@ -869,6 +908,7 @@
 
       onLose: (result) => {
         lastResult = result;
+        if (typeof Sfx !== 'undefined') Sfx.sting('lose');
         $('lose-time').textContent = fmtSec(result.time);
         $('lose-moves').textContent = String(result.moves);
 

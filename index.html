@@ -66,6 +66,9 @@
   </div>
 
   <div class="actions">
+    <button class="btn btn-ghost btn-sound" id="btn-sound" title="音效开关" aria-label="音效开关">
+      <span id="sound-icon">♪</span>
+    </button>
     <button class="btn btn-ghost" id="btn-pause" title="暂停 / 继续 (ESC)">
       <span id="pause-icon">❚❚</span>
     </button>
@@ -376,7 +379,7 @@
             </svg>
           </span>
           <div class="star-txt">
-            <b>喜欢这个游戏项目？收藏一下</b>
+            <b>喜欢这个游戏？收藏一下</b>
             <span>github.com/fuyue-1/maze-game</span>
           </div>
         </div>
@@ -399,6 +402,9 @@
         <tr><td><kbd>ESC</kbd></td><td>暂停 / 继续</td></tr>
         <tr><td>触屏滑动</td><td>移动端可用</td></tr>
       </table>
+
+      <h3>听声辨位</h3>
+      <p>全程都有轻快的背景旋律，踩着节奏走就行。一旦怪物进入你周围 <b class="hl-gold">5 格</b>，音乐会退到后面，心跳声压上来——越近跳得越快、越沉，左耳响说明怪物在你左边。顶栏的 <b>♪</b> 按钮可以随时静音。</p>
 
       <h3>三个视角怎么选</h3>
       <p>同一张迷宫，三种看法。切到哪个视角，就用那个视角的读法。</p>
@@ -430,7 +436,7 @@
           <ul>
             <li>视角离地低，只能看清身前几格，靠小地图辨向</li>
             <li>适合追求沉浸感和紧张感</li>
-            <li>此视角<b class="hl-red">不提供路线提示</b>（本人觉得3D模式最简单，很清晰，故无路线提示技能）</li>
+            <li>此视角<b class="hl-red">不提供路线提示</b>（远处路径必被墙遮住，给了也没用）</li>
           </ul>
         </div>
       </div>
@@ -494,6 +500,7 @@
 <script src="js/themes.js"></script>
 <script src="js/helpers.js"></script>
 <script src="js/minimap.js"></script>
+<script src="js/audio.js"></script>
 <script src="vendor/three.min.js"></script>
 <script src="js/iso.js"></script>
 <script src="js/iso3d.js"></script>
