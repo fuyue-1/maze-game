@@ -53,9 +53,13 @@ jobs:
       - name: 准备站点目录
         run: |
           mkdir -p _site
-          cp -r index.html css js _site/
+          # vendor/ 必须一起拷：three.min.js 是 3D 视角的运行时依赖，
+          # 漏了它 THREE 就是 undefined，线上 3D 会直接判定"WebGL 不可用"
+          cp -r index.html css js vendor _site/
           # 单文件版也一并发布，便于直接下载分享
           cp standalone.html _site/ 2>/dev/null || true
+          # 防止再次漏文件：线上缺 three 就让构建失败，而不是静默降级
+          test -f _site/vendor/three.min.js || { echo "✗ vendor/three.min.js 未进入站点目录"; exit 1; }
 
       - name: 打包站点
         uses: actions/upload-pages-artifact@v3

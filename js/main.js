@@ -690,7 +690,12 @@
       Themes.setView(v);
       const actual = Game.getViewMode();
       if (actual !== v) {
-        toast('当前设备不支持 3D（WebGL 不可用），已使用 2D', 2200);
+        // 区分两种失败原因，别再一律说"设备不支持"——
+        // 线上漏发 vendor/three.min.js 时，手机明明支持 WebGL 也会看到这句话。
+        const noThree = (typeof THREE === 'undefined');
+        toast(noThree
+          ? '3D 资源未加载（three.js 缺失），已使用 2D'
+          : '当前设备不支持 3D（WebGL 不可用），已使用 2D', 2600);
         Themes.setView(actual);
       } else {
         const names = { '2d': '2D 俯视', 'iso': '2.5D 等距', '3d': '3D 立体' };

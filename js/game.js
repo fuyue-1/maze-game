@@ -331,31 +331,40 @@ const Game = (function () {
     });
 
     // 触摸/滑动支持（移动端可玩）
+    // 注意：绑在 document 上而不是 #game-canvas ——
+    // 3D 视角有独立的 .gfx3d-layer 叠在主画布上方（z-index:2），
+    // 绑画布的话所有触摸都会被 3D 层截走，手机上 3D 就"滑不动"了。
+    // 因此统一在 document 收手势，但排除按钮/弹窗等 UI 区域。
     let touchStart = null;
-    const canvasEl = document.getElementById('game-canvas');
-    if (canvasEl) {
-      canvasEl.addEventListener('touchstart', (e) => {
-        const t = e.changedTouches[0];
-        touchStart = { x: t.clientX, y: t.clientY };
-      }, { passive: true });
+    const isUITouch = (target) =>
+      target && target.closest &&
+      target.closest('.dpad, .star-fab, .hud, .topbar, button, .btn, .modal, .overlay, input, .minimap-wrap, a');
 
-      canvasEl.addEventListener('touchend', (e) => {
-        if (!touchStart) return;
-        const t = e.changedTouches[0];
-        const dx = t.clientX - touchStart.x;
-        const dy = t.clientY - touchStart.y;
-        if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { touchStart = null; return; }
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { touchStart = null; return; }  // 多指不管
+      const t = e.changedTouches[0];
+      if (isUITouch(e.target)) { touchStart = null; return; }
+      touchStart = { x: t.clientX, y: t.clientY };
+    }, { passive: true });
 
-        if (Math.abs(dx) > Math.abs(dy)) {
-          state.player.dir = { x: dx > 0 ? 1 : -1, y: 0 };
-          tryMove(dx > 0 ? 1 : -1, 0);
-        } else {
-          state.player.dir = { x: 0, y: dy > 0 ? 1 : -1 };
-          tryMove(0, dy > 0 ? 1 : -1);
-        }
-        touchStart = null;
-      }, { passive: true });
-    }
+    document.addEventListener('touchend', (e) => {
+      if (!touchStart) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStart.x;
+      const dy = t.clientY - touchStart.y;
+      touchStart = null;
+      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        state.player.dir = { x: dx > 0 ? 1 : -1, y: 0 };
+        tryMove(dx > 0 ? 1 : -1, 0);
+      } else {
+        state.player.dir = { x: 0, y: dy > 0 ? 1 : -1 };
+        tryMove(0, dy > 0 ? 1 : -1);
+      }
+    }, { passive: true });
+    // 手指滑出屏幕外也要复位
+    document.addEventListener('touchcancel', () => { touchStart = null; }, { passive: true });
   }
 
   const KEY_DIRS = {
