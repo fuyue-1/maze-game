@@ -816,6 +816,7 @@ kbd {
 }
 
 .rank-source {
+  display: none;
   margin-top: 14px;
   font-size: 10.5px;
   color: var(--text-2);
