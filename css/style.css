@@ -7,7 +7,7 @@
   --line: #d6c8ab;
   --line-soft: rgba(160, 130, 80, 0.16);
 
-  --text-0: #3b3225;
+  --text-0: #816c4f;
   --text-1: #6b5c45;
   --text-2: #948468;
 
@@ -643,7 +643,7 @@ kbd {
   letter-spacing: 0.3px;
 }
 
-.submit-status.ok { color: var(--teal); }
+.submit-status.ok { color: #b1741c; }
 .submit-status.err { color: var(--red); }
 
 /* ---------------------------------------------------------------- 弹窗 */
@@ -708,7 +708,7 @@ kbd {
   gap: 6px;
   margin-bottom: 14px;
   padding: 4px;
-  background: rgba(8, 12, 20, 0.7);
+  background: rgba(94, 120, 173, 0.7);
   border-radius: 10px;
   border: 1px solid rgba(34, 48, 74, 0.7);
 }
@@ -1271,9 +1271,9 @@ kbd {
   transform: translate(-50%, 20px);
   padding: 11px 22px;
   border-radius: 10px;
-  background: rgba(19, 27, 43, 0.97);
+  background: rgba(68, 96, 153, 0.97);
   border: 1px solid rgba(201, 138, 46, 0.3);
-  color: var(--text-0);
+  color: #ffffff;
   font-size: 12.5px;
   letter-spacing: 0.4px;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
