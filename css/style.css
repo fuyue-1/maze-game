@@ -621,7 +621,7 @@ kbd {
   font-family: var(--font);
   font-size: 13px;
   color: #ffffff;
-  background: rgba(10, 15, 24, 0.9);
+  background: rgba(68, 94, 143, 0.9);
   border: 1px solid rgba(200, 178, 140, 1);
   border-radius: var(--radius-sm);
   outline: none;
