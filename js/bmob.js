@@ -33,7 +33,9 @@ const BmobRank = (function () {
     // 请求超时（毫秒），超时即降级，避免演示时长时间等待
     TIMEOUT: 6000,
     // 本地榜存储键
-    LS_KEY: 'maze_local_rank_v1'
+    LS_KEY: 'maze_local_rank_v1',
+    // 排行榜展示条数：云端 limit 与本地榜上限都用它，改一处即可
+    TOP_N: 30
   };
   // ================================================================
 
@@ -111,7 +113,8 @@ const BmobRank = (function () {
 
   function localWrite(list) {
     try {
-      localStorage.setItem(CONFIG.LS_KEY, JSON.stringify(list.slice(0, 50)));
+      // 本地榜要能撑起 TOP_N(30) 条展示，留 4 倍余量即可，不必无限增长
+      localStorage.setItem(CONFIG.LS_KEY, JSON.stringify(list.slice(0, CONFIG.TOP_N * 4)));
     } catch (e) {
       /* 隐私模式可能禁止写入，忽略 */
     }
@@ -169,7 +172,7 @@ const BmobRank = (function () {
    * 查询 Top N
    * Bmob 查询参数：
    *   order=time        → 按 time 升序（越快越前）
-   *   limit=10          → 取前 10
+   *   limit=n           → 取前 n（默认 CONFIG.TOP_N = 30，Bmob 单次上限 1000）
    *   where={"size":"简单"} → 按难度过滤
    */
   async function cloudTop(n, size) {
@@ -221,7 +224,8 @@ const BmobRank = (function () {
    * @param {number} n 取前 n 名
    * @param {string} [size] 难度筛选，空则全部
    */
-  async function top(n = 10, size = '') {
+  async function top(n, size = '') {
+    n = n || CONFIG.TOP_N;   // 不传就用配置里的默认值（30）
     if (isConfigured()) {
       try {
         const list = await cloudTop(n, size);

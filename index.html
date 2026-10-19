@@ -3,25 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="description" content="迷宫逃生 —— 基于迭代 DFS 迷宫生成、BFS 怪物寻路与局部 BFS 视线追踪的网页小游戏">
-<meta property="og:title" content="小龙迷宫逃生 · Maze Escape">
+<meta name="description" content="小龙迷宫逃生 —— 基于迭代 DFS 迷宫生成、BFS 怪物寻路与局部 BFS 视线追踪的网页小游戏">
+<meta property="og:title" content="小龙迷宫逃生 · Dragon Maze">
 <meta property="og:description" content="在黑暗中找到出口，别让它们先找到你。迭代 DFS · BFS 寻路 · 视线迷雾">
 <meta property="og:type" content="website">
 <meta property="og:image" content="assets/social-preview.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#070a11">
-<title>小龙迷宫逃生 · Maze Escape</title>
+<title>小龙迷宫逃生 · Dragon Maze</title>
 <link rel="stylesheet" href="css/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌀</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M9.2 9.4 7 3.4l4.9 3.6z' fill='%23F5B942'/><path d='M22.8 9.4 25 3.4l-4.9 3.6z' fill='%23F5B942'/><circle cx='16' cy='17.4' r='9.1' fill='%23FFD98A'/><ellipse cx='16' cy='21.6' rx='5.2' ry='3.9' fill='%23FFF6E0'/><circle cx='12.4' cy='15.2' r='1.65' fill='%233B3225'/><circle cx='19.6' cy='15.2' r='1.65' fill='%233B3225'/><circle cx='14.5' cy='20.2' r='.85' fill='%238A5A22'/><circle cx='17.5' cy='20.2' r='.85' fill='%238A5A22'/></svg>">
 </head>
 <body>
 
 <!-- 顶栏 -->
 <header class="topbar">
   <div class="brand">
-    <span class="logo">◈</span>
+    <!-- 内联 SVG 而不是 emoji：不依赖系统 emoji 字体，任何设备都能显示 -->
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32" fill="none">
+        <path d="M9.2 9.4 7 3.4l4.9 3.6z" fill="#F5B942"/>
+        <path d="M22.8 9.4 25 3.4l-4.9 3.6z" fill="#F5B942"/>
+        <circle cx="16" cy="17.4" r="9.1" fill="#FFD98A"/>
+        <ellipse cx="16" cy="21.6" rx="5.2" ry="3.9" fill="#FFF6E0"/>
+        <circle cx="12.4" cy="15.2" r="1.65" fill="#3B3225"/>
+        <circle cx="19.6" cy="15.2" r="1.65" fill="#3B3225"/>
+        <circle cx="12.9" cy="14.6" r="0.55" fill="#fff"/>
+        <circle cx="20.1" cy="14.6" r="0.55" fill="#fff"/>
+        <circle cx="14.5" cy="20.2" r="0.85" fill="#8A5A22"/>
+        <circle cx="17.5" cy="20.2" r="0.85" fill="#8A5A22"/>
+        <ellipse cx="9.6" cy="19.4" rx="1.9" ry="1.2" fill="#FF8A8A" opacity=".55"/>
+        <ellipse cx="22.4" cy="19.4" rx="1.9" ry="1.2" fill="#FF8A8A" opacity=".55"/>
+      </svg>
+    </span>
     <span class="brand-text">小龙迷宫逃生</span>
-    <span class="brand-sub">Maze Escape</span>
+    <span class="brand-sub">Dragon Maze</span>
   </div>
 
   <div class="hud">
@@ -77,12 +93,30 @@
     <!-- 开始遮罩 -->
     <div class="overlay" id="overlay-start">
       <div class="panel panel-start">
-        <h1 class="title">迷宫逃生</h1>
+        <div class="title-wrap">
+          <span class="title-dragon" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M9.2 9.4 7 3.4l4.9 3.6z" fill="#F5B942"/>
+              <path d="M22.8 9.4 25 3.4l-4.9 3.6z" fill="#F5B942"/>
+              <circle cx="16" cy="17.4" r="9.1" fill="#FFD98A"/>
+              <ellipse cx="16" cy="21.6" rx="5.2" ry="3.9" fill="#FFF6E0"/>
+              <circle cx="12.4" cy="15.2" r="1.65" fill="#3B3225"/>
+              <circle cx="19.6" cy="15.2" r="1.65" fill="#3B3225"/>
+              <circle cx="12.9" cy="14.6" r="0.55" fill="#fff"/>
+              <circle cx="20.1" cy="14.6" r="0.55" fill="#fff"/>
+              <circle cx="14.5" cy="20.2" r="0.85" fill="#8A5A22"/>
+              <circle cx="17.5" cy="20.2" r="0.85" fill="#8A5A22"/>
+              <ellipse cx="9.6" cy="19.4" rx="1.9" ry="1.2" fill="#FF8A8A" opacity=".55"/>
+              <ellipse cx="22.4" cy="19.4" rx="1.9" ry="1.2" fill="#FF8A8A" opacity=".55"/>
+            </svg>
+          </span>
+          <h1 class="title">小龙迷宫逃生</h1>
+        </div>
         <p class="subtitle">在黑暗中找到出口，别让它们先找到你</p>
 
         <div class="diff-group" id="diff-group">
           <button class="diff-card" data-diff="easy">
-            <span class="diff-name">简易</span>
+            <span class="diff-name">简单</span>
             <span class="diff-meta">11 × 11 · 1 只怪物</span>
             <span class="diff-hint">适合首次体验</span>
           </button>
@@ -193,13 +227,13 @@
   <div class="modal-mask" data-close="rank"></div>
   <div class="modal-body">
     <div class="modal-head">
-      <h2>排行榜 <span class="rank-scope" id="rank-scope">Top 10</span></h2>
+      <h2>排行榜 <span class="rank-scope" id="rank-scope">Top 30</span></h2>
       <button class="btn-close" data-close="rank" aria-label="关闭">×</button>
     </div>
 
     <div class="tabs" id="rank-tabs">
       <button class="tab is-active" data-size="">全部</button>
-      <button class="tab" data-size="简单">简易</button>
+      <button class="tab" data-size="简单">简单</button>
       <button class="tab" data-size="中等">中等</button>
       <button class="tab" data-size="困难">困难</button>
     </div>
@@ -378,7 +412,7 @@
 </div>
 
     <!-- 移动端虚拟方向键（ coarse 指针设备显示） -->
-    <div class="dpad" id="dpad" aria-label="方向控制">
+    <div class="dpad hidden" id="dpad" aria-label="方向控制">
       <button class="dpad-btn dpad-up" data-dir="up" aria-label="上">▲</button>
       <button class="dpad-btn dpad-left" data-dir="left" aria-label="左">◀</button>
       <button class="dpad-btn dpad-right" data-dir="right" aria-label="右">▶</button>

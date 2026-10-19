@@ -37,18 +37,79 @@ const Renderer = (function () {
 
   /**
    * 应用场景主题
+   * ------------------------------------------------------------
    * 换色后必须重建静态层（墙体和地板是预渲染的），
    * 同时清掉暗角缓存，否则会出现"新墙体 + 旧暗角"的割裂感。
+   *
+   * 【本轮修复】配色只更新了本模块的 PALETTE，
+   *   2.5D（Iso）和 3D（Iso3D）各有自己的一份色板副本，从未被下发，
+   *   导致无论选什么主题，这两个视角都一直是硬编码的默认色。
+   *   现在统一由这里转发 —— Themes.apply() 只需调一次 Renderer.applyTheme，
+   *   三个视角的配色就都同步了，不存在漏发某一路的风险。
    */
   function applyTheme(palette) {
     if (!palette) return;
     PALETTE = Object.assign({}, PALETTE, palette);
+
+    // ---- 补全"派生色" ----
+    // fog / explored 只有部分主题显式定义（如 daylight）。
+    // Object.assign 只覆盖存在的键、不会删除旧键，所以切到没定义 fog 的主题时，
+    // fog 会残留上一个主题的值 —— 典型症状：换到午夜蓝后迷雾仍是浅米色，
+    // 整张图糊成一片、只剩玩家脚下一圈黑。这里按背景亮度统一推导，避免漏配。
+    if (!palette.fog) {
+      // 暗主题直接拿纯黑当雾，整屏会像"没渲染"；掺 10% 白提成深蓝灰，
+      // 保留夜色的同时留出一点空间感。亮主题则直接用背景色。
+      PALETTE.fog = lumaOfHex(PALETTE.bg) < 0.35
+        ? hexToRgba(mixHex(PALETTE.bg, '#ffffff', 0.10), 1)
+        : hexToRgba(PALETTE.bg, 1);
+    }
+    if (!palette.explored) {
+      PALETTE.explored = lumaOfHex(PALETTE.bg) < 0.35
+        ? 'rgba(198,214,255,0.10)'   // 暗主题：冷白微光，让走过的路比黑背景稍亮
+        : 'rgba(120,105,80,0.30)';   // 亮主题：暖灰压暗
+    }
+
     staticDirty = true;
     vignetteCanvas = null;
+
+    // 转发给 2.5D 与 3D（未初始化时它们内部只缓存，init 时会补应用）
+    if (typeof Iso !== 'undefined' && Iso.applyTheme) Iso.applyTheme(PALETTE);
+    if (typeof Iso3D !== 'undefined' && Iso3D.applyTheme) Iso3D.applyTheme(PALETTE);
+
     if (cachedMaze) {
       buildStaticLayer();
       staticDirty = false;
     }
+  }
+
+  /** '#rrggbb' → 'rgba(r,g,b,a)' */
+  function hexToRgba(hex, a) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return 'rgba(0,0,0,' + a + ')';
+    const n = parseInt(m[1], 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  /** 两色按比例混合，t=0 取 a，t=1 取 b */
+  function mixHex(a, b, t) {
+    const pa = /^#?([0-9a-f]{6})$/i.exec(String(a || '').trim());
+    const pb = /^#?([0-9a-f]{6})$/i.exec(String(b || '').trim());
+    if (!pa || !pb) return a;
+    const na = parseInt(pa[1], 16), nb = parseInt(pb[1], 16);
+    const ch = (sh) => {
+      const va = (na >> sh) & 255, vb = (nb >> sh) & 255;
+      return Math.round(va + (vb - va) * t);
+    };
+    const to2 = (v) => v.toString(16).padStart(2, '0');
+    return '#' + to2(ch(16)) + to2(ch(8)) + to2(ch(0));
+  }
+
+  /** 感知亮度，判断主题是深色还是浅色 */
+  function lumaOfHex(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return 0;
+    const n = parseInt(m[1], 16);
+    return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
   }
 
   let canvas = null;

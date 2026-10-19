@@ -13,6 +13,9 @@
 
   const BEST_KEY_PREFIX = 'maze_best_';
 
+  // 排行榜展示条数：单一来源，避免"云端取 30、界面写 Top 10"这种不一致
+  const TOP_N = (typeof BmobRank !== 'undefined' && BmobRank.CONFIG && BmobRank.CONFIG.TOP_N) || 30;
+
   // 当前选中的难度
   let currentDiff = 'normal';
   // 本局结果缓存（提交成绩时用）
@@ -217,6 +220,7 @@
     rankFilter = size || '';
     $('rank-list').innerHTML = '<div class="rank-empty">加载中…</div>';
     $('rank-source').textContent = '';
+    $('rank-scope').textContent = 'Top ' + TOP_N;
 
     // 标签选中态
     document.querySelectorAll('#rank-tabs .tab').forEach((t) => {
@@ -225,7 +229,7 @@
 
     let res;
     try {
-      res = await BmobRank.top(10, rankFilter);
+      res = await BmobRank.top(TOP_N, rankFilter);
     } catch (e) {
       res = { ok: false, source: 'local', list: [] };
     }
@@ -320,10 +324,13 @@
       try { localStorage.setItem('maze_nick', name); } catch (e) {}
 
       // 提示是否进了前 10
-      const top = await BmobRank.top(10, lastResult.difficulty);
+      const top = await BmobRank.top(TOP_N, lastResult.difficulty);
       const rank = top.list.findIndex((r) => r.username === name && Math.abs(r.time - lastResult.time) < 0.011);
       if (rank >= 0) {
         status.textContent += ' · 当前第 ' + (rank + 1) + ' 名';
+      } else if (top.list.length >= TOP_N) {
+        // 榜单已满且没找到自己 —— 明确告诉玩家名次，别让人以为提交丢了
+        status.textContent += ' · 暂未进入前 ' + TOP_N + ' 名';
       }
     } catch (e) {
       btn.disabled = false;
@@ -628,10 +635,12 @@
     });
 
     $('btn-reset-look').addEventListener('click', () => {
-      Themes.setTheme('midnight');
-      Themes.setSkin('yogurt');
-      Themes.setView('2d');
+      Themes.setTheme('midnight');   // 默认主题：午夜蓝
+      Themes.setSkin('yogurt');      // 默认角色：奶黄龙
+      Themes.setView('2d');          // 默认视角：2D 俯视
       buildCustomPanel();
+      renderStartGuide('2d');
+      updateSkillUI();
       toast('已恢复默认外观');
     });
 
@@ -647,15 +656,9 @@
       e.stopPropagation();
     });
 
-    // 输入框聚焦时不解绑方向键（Game 已处理 preventDefault）
-    $('input-username').addEventListener('focus', () => {
-      // 允许输入文字：Game 的 keydown 里对方向键做了拦截，
-      // 但输入框内不应触发移动。这里通过标记让 Game 跳过。
-      window.__mazeInputFocused = true;
-    });
-    $('input-username').addEventListener('blur', () => {
-      window.__mazeInputFocused = false;
-    });
+    // 昵称输入框：Game.bindInput 里已有 isTyping() 判断，
+    // 聚焦时方向键/空格都交给输入框，不会误触发移动或隐身。
+    // （这里不再设置 __mazeInputFocused —— 那个标记没有消费方，属于历史遗留）
   }
 
   // ==================== 游戏回调 ====================
@@ -745,6 +748,10 @@
         } else if (phase === 'playing') {
           hide($('overlay-pause'));
           $('pause-icon').textContent = '❚❚';
+          // 方向键只在真正操作时出现：开始页/结算页盖着它很碍眼
+          $('dpad').classList.remove('hidden');
+        } else {
+          $('dpad').classList.add('hidden');
         }
       },
 
@@ -821,14 +828,20 @@
     buildCustomPanel();
 
     // 说明文案按"实际生效的视角"渲染（3D 初始化失败时会回退 2D）
+    // 并且要重新 markActive：buildCustomPanel 用的是"用户选的"视角，
+    // 若该视角实际不可用（无 WebGL），卡片高亮会和真实状态对不上
     const realView = Game.getViewMode();
+    markActive('view-switch', 'data-view', realView);
     renderStartGuide(realView);
     renderCustomGuide(realView);
     updateSkillUI();
 
-    // 尝试预热 Bmob SDK（失败无所谓，会降级）
+    // 排行榜读写走的是 Bmob REST API（原生 fetch），不需要加载 SDK。
+    // 这里不再预热 SDK：省掉一个几百 KB 的外部请求，
+    // 断网/CDN 被墙时也不会在控制台留下误导性的加载失败。
     if (BmobRank.isConfigured()) {
-      BmobRank.loadSDK().catch(() => {});
+      console.log('%c排行榜：Bmob 云端已配置（' + BmobRank.CONFIG.TOP_N + ' 条）',
+        'color:#38e8b0;font-size:12px');
     }
 
     // 首次尺寸校准：等字体/布局稳定后再测一次画布尺寸

@@ -1,6 +1,6 @@
-# 迷宫逃生 · Maze Escape
+# 🐉 小龙迷宫逃生 · Dragon Maze
 
-一个纯前端实现的迷宫逃生网页游戏。**无需服务器、无需数据库、打开即玩。**
+一个纯前端实现的迷宫逃生网页游戏（主角是一只小奶龙）。**无需服务器、无需数据库、打开即玩。**
 
 核心亮点：**迭代 DFS 迷宫生成 · BFS 怪物寻路 · 局部 BFS + 视线追踪迷雾 · Canvas 矢量角色**
 
@@ -119,6 +119,7 @@ maze-game/
 ├── tests/
 │   ├── maze.test.js        # 55 项算法测试
 │   └── los.test.js         # 24 项视线/迷雾测试
+└── standalone.html          # 单文件版（全部内联，可离线分享）
 ```
 
 ## 本地运行
@@ -137,6 +138,9 @@ node tests/maze.test.js   # 迷宫生成 + BFS
 node tests/los.test.js    # 视线遮挡 + FOV 收敛
 ```
 
+## 部署
+
+见 [DEPLOY.md](DEPLOY.md)：GitHub Pages / Gitee Pages / 本地局域网 三种方式。
 
 ## License
 

@@ -166,3 +166,14 @@ const CONFIG = {
 - 自定义域名：Settings → Pages → Custom domain，填你的域名，并在域名商处加 CNAME 记录
 
 ---
+
+## 检查清单
+
+上线前对照一遍：
+
+- [ ] `index.html` 在仓库根目录
+- [ ] `css/` 和 `js/` 文件夹完整上传（不是只有 html）
+- [ ] 仓库是 Public
+- [ ] Pages 的 Branch 选的是主分支、目录是 `/`
+- [ ] 手机打开测试过（滑动、方向键、开始游戏）
+- [ ] 如果配了 Bmob，测过成绩提交

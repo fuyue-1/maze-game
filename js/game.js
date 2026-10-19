@@ -27,6 +27,9 @@ const Game = (function () {
       monsters: 1,
       monsterSpeed: 1.6,   // 格/秒
       viewRadius: 6.5,
+      // name 会写进排行榜的 size 字段，必须与界面文案、以及 Bmob 表里
+      // 已有的历史数据保持一致（表里现存记录用的是"简单"），
+      // 否则筛选"简易"会把旧成绩全部筛掉
       name: '简单'
     },
     normal: {
@@ -439,6 +442,7 @@ const Game = (function () {
     const e = state.maze.end;
     if (p.x === e.x && p.y === e.y) {
       state.phase = 'win';
+      clearSkills();      // 结算画面不该还留着隐身/路径高亮
       const seconds = state.elapsed;
       if (callbacks.onWin) {
         callbacks.onWin({
@@ -455,6 +459,7 @@ const Game = (function () {
   function checkLose(monster) {
     if (state.phase !== 'playing') return;
     state.phase = 'lose';
+    clearSkills();      // 同上：失败画面保留路径高亮会很突兀
     if (callbacks.onLose) {
       callbacks.onLose({
         time: Math.round(state.elapsed * 100) / 100,
@@ -468,6 +473,18 @@ const Game = (function () {
 
   function notifyState() {
     if (callbacks.onStateChange) callbacks.onStateChange(state.phase);
+  }
+
+  /**
+   * 清空两个技能的生效状态
+   * 只在胜负结算时调用：倒计时不重置（否则下一局会白送一次冷却），
+   * 但画面上的高亮必须立刻消失，否则结算面板背后还拖着一条金线。
+   */
+  function clearSkills() {
+    state.hintT = 0;
+    state.hintPath = null;
+    state.hintFrom = null;
+    state.stealthT = 0;
   }
 
   // ==================== 暂停 / 继续 ====================

@@ -1,3 +1,7 @@
+/* ==========================================================================
+   迷宫逃生 —— 样式表
+   明亮暖石主题：低对比、暖色调，降低压迫感
+   ========================================================================== */
 
 :root {
   --bg-0: #efe7d6;
@@ -7,7 +11,7 @@
   --line: #d6c8ab;
   --line-soft: rgba(160, 130, 80, 0.16);
 
-  --text-0: #816c4f;
+  --text-0: #3b3225;
   --text-1: #6b5c45;
   --text-2: #948468;
 
@@ -70,10 +74,16 @@ body {
 }
 
 .logo {
-  color: var(--teal);
-  font-size: 19px;
+  display: flex;
+  align-items: center;
   line-height: 1;
-  text-shadow: 0 0 14px rgba(201, 138, 46, 0.6);
+}
+
+.logo svg {
+  width: 21px;
+  height: 21px;
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(201, 138, 46, 0.45));
 }
 
 .brand-text {
@@ -250,8 +260,10 @@ body {
   box-shadow: 0 4px 20px rgba(201, 138, 46, 0.28);
 }
 
+/* 原来是霓虹绿渐变（#4ff2be），改暖石配色时漏掉了这个 hover 态，
+   鼠标一放上去按钮就变绿，和全站配色完全打架 */
 .btn-primary:hover {
-  background: linear-gradient(180deg, #4ff2be 0%, #2ed3a1 100%);
+  background: linear-gradient(180deg, #e0ac58 0%, #c08c2f 100%);
   box-shadow: 0 6px 26px rgba(201, 138, 46, 0.42);
 }
 
@@ -325,7 +337,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: radial-gradient(circle at 50% 40%, rgba(250, 245, 233, 0.86), rgba(232, 222, 202, 0.95));
+  /* 提高不透明度：0.86 时深色迷宫会透出来把整个画面染成灰，
+     弹窗区域显得脏；压到 0.93 后背后只剩一点氛围，主体更干净 */
+  background: radial-gradient(circle at 50% 40%, rgba(250, 245, 233, 0.93), rgba(232, 222, 202, 0.97));
   backdrop-filter: blur(7px);
   z-index: 10;
   animation: fadeIn 0.26s ease;
@@ -335,9 +349,18 @@ body {
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* 面板原本完全没有背景色，只靠半透明遮罩透出下层画面。
+   开始页底下是空画布还好，但结算弹窗底下是深色迷宫 ——
+   遮罩把浅色压成中灰，深棕文字压在上面就很难看清。
+   这里给面板一块实底，彻底与背后画面隔离。 */
 .panel {
   width: 100%;
   max-width: 560px;
+  padding: 34px 30px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffdf7 0%, #f4ecdb 100%);
+  border: 1px solid rgba(200, 178, 140, 0.95);
+  box-shadow: 0 22px 54px rgba(74, 58, 34, 0.26);
   text-align: center;
   animation: rise 0.34s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
@@ -348,6 +371,40 @@ body {
 @keyframes rise {
   from { opacity: 0; transform: translateY(14px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 标题：小龙 emoji 与文字横排，emoji 轻微上下浮动 */
+.title-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.title-dragon {
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  filter: drop-shadow(0 3px 10px rgba(201, 138, 46, 0.35));
+  animation: dragonFloat 2.6s ease-in-out infinite;
+}
+
+.title-dragon svg {
+  width: 42px;
+  height: 42px;
+  display: block;
+}
+
+@keyframes dragonFloat {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-5px) rotate(2deg); }
+}
+
+/* 窄屏把字距收一点，否则 6 个字会换行 */
+@media (max-width: 560px) {
+  .title { font-size: 27px; letter-spacing: 3px; }
+  .title-dragon svg { width: 32px; height: 32px; }
 }
 
 .title {
@@ -580,7 +637,7 @@ kbd {
   padding: 12px 8px;
   border-radius: 11px;
   background: rgba(255, 252, 244, 0.62);
-  border: 1px solid rgba(34, 48, 74, 0.85);
+  border: 1px solid rgba(200, 178, 140, 0.95);
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -620,8 +677,10 @@ kbd {
   padding: 10px 14px;
   font-family: var(--font);
   font-size: 13px;
-  color: #ffffff;
-  background: rgba(68, 94, 143, 0.9);
+  /* 原来背景是 rgba(10,15,24,.9) 近黑，配 --text-0 深棕字等于黑底黑字，
+     玩家输入昵称时看不见自己打了什么 */
+  color: var(--text-0);
+  background: rgba(255, 253, 247, 0.96);
   border: 1px solid rgba(200, 178, 140, 1);
   border-radius: var(--radius-sm);
   outline: none;
@@ -639,11 +698,11 @@ kbd {
   font-size: 11.5px;
   min-height: 17px;
   margin-bottom: 14px;
-  color: var(--text-2);
+  color: var(--text-1);
   letter-spacing: 0.3px;
 }
 
-.submit-status.ok { color: #b1741c; }
+.submit-status.ok { color: #8a5f14; }   /* 金色在浅底上偏浅，压深保证可读 */
 .submit-status.err { color: var(--red); }
 
 /* ---------------------------------------------------------------- 弹窗 */
@@ -662,7 +721,7 @@ kbd {
 .modal-mask {
   position: absolute;
   inset: 0;
-  background: rgba(3, 5, 9, 0.78);
+  background: rgba(52, 42, 28, 0.62);
   backdrop-filter: blur(6px);
   animation: fadeIn 0.2s ease;
 }
@@ -703,14 +762,15 @@ kbd {
 }
 
 /* 排行榜 */
+/* 原来是黑底条 + 深灰棕字，切换难度时看不清选中了哪个 */
 .tabs {
   display: flex;
   gap: 6px;
   margin-bottom: 14px;
   padding: 4px;
-  background: rgba(94, 120, 173, 0.7);
+  background: rgba(240, 232, 216, 0.9);
   border-radius: 10px;
-  border: 1px solid rgba(34, 48, 74, 0.7);
+  border: 1px solid rgba(200, 178, 140, 0.9);
 }
 
 .tab {
@@ -719,7 +779,7 @@ kbd {
   font-family: var(--font);
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-2);
+  color: var(--text-1);
   background: transparent;
   border: none;
   border-radius: 7px;
@@ -740,6 +800,18 @@ kbd {
   flex-direction: column;
   gap: 5px;
   min-height: 120px;
+  /* Top 30 后列表变长：给列表自身一个滚动区，
+     否则整个弹窗一起滚，标题和难度筛选会被顶出可视区 */
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.rank-list::-webkit-scrollbar { width: 6px; }
+.rank-list::-webkit-scrollbar-thumb {
+  background: rgba(201, 138, 46, 0.35);
+  border-radius: 3px;
 }
 
 .rank-empty {
@@ -758,7 +830,7 @@ kbd {
   padding: 9px 12px;
   border-radius: 9px;
   background: rgba(255, 252, 244, 0.5);
-  border: 1px solid rgba(34, 48, 74, 0.55);
+  border: 1px solid rgba(200, 178, 140, 0.9);
   transition: all 0.16s;
   animation: rowIn 0.3s ease backwards;
 }
@@ -783,9 +855,10 @@ kbd {
   text-align: center;
 }
 
-.rank-row:nth-child(1) .rank-no { color: var(--gold); }
-.rank-row:nth-child(2) .rank-no { color: #cbd5e1; }
-.rank-row:nth-child(3) .rank-no { color: #d08a5a; }
+/* 前三名配色：#cbd5e1 那种浅银在浅色底上等于隐形，统一压深 */
+.rank-row:nth-child(1) .rank-no { color: var(--gold); font-size: 13.5px; }
+.rank-row:nth-child(2) .rank-no { color: #6f7d8f; font-size: 13px; }
+.rank-row:nth-child(3) .rank-no { color: #a4632f; font-size: 13px; }
 
 .rank-name {
   font-size: 13px;
@@ -842,7 +915,7 @@ kbd {
 .kbd-table td {
   padding: 6px 4px;
   font-size: 12px;
-  border-bottom: 1px solid rgba(34, 48, 74, 0.5);
+  border-bottom: 1px solid rgba(200, 178, 140, 0.9);
 }
 .kbd-table td:first-child { width: 58%; }
 
@@ -962,9 +1035,10 @@ kbd {
   letter-spacing: 0.5px;
 }
 
-/* 有触屏或粗指针的设备才显示方向键 */
+/* 有触屏或粗指针的设备才显示方向键（且只在游戏中显示，见 .hidden） */
 @media (pointer: coarse) {
   .dpad { display: grid; }
+  .dpad.hidden { display: none; }
   /* 窄屏上给底部留出方向键空间 */
   .stage { padding-bottom: 170px; }
 }
@@ -984,7 +1058,7 @@ kbd {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(200, 178, 140, 0.9);
-  background: radial-gradient(circle at 50% 45%, #16202f 0%, #080c14 75%);
+  background: radial-gradient(circle at 50% 45%, #f3ebda 0%, #ddd0b6 75%);
 }
 
 #preview-canvas {
@@ -1001,7 +1075,8 @@ kbd {
   font-family: var(--mono);
   color: var(--text-2);
   letter-spacing: 0.6px;
-  background: rgba(6, 9, 15, 0.7);
+  color: var(--text-0);
+  background: rgba(255, 252, 244, 0.92);
   padding: 3px 9px;
   border-radius: 6px;
 }
@@ -1240,6 +1315,17 @@ kbd {
   backdrop-filter: blur(4px);
 }
 
+/* 暗色主题下小地图换成深色底，图例同步反色 */
+.minimap-wrap.is-dark #minimap-canvas {
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.55));
+}
+
+.minimap-wrap.is-dark .minimap-legend {
+  color: rgba(186, 202, 226, 0.9);
+  background: rgba(16, 22, 36, 0.82);
+  border: 1px solid rgba(120, 150, 200, 0.22);
+}
+
 .minimap-legend span {
   display: inline-flex;
   align-items: center;
@@ -1264,6 +1350,8 @@ kbd {
 }
 
 /* ---------------------------------------------------------------- 轻提示 */
+/* 原来是「黑底 + --text-0 深棕字」= 黑底黑字，技能提示和提交结果完全看不见。
+   现在统一为浅底深字，与全站暖石配色一致。 */
 .toast {
   position: fixed;
   left: 50%;
@@ -1271,12 +1359,13 @@ kbd {
   transform: translate(-50%, 20px);
   padding: 11px 22px;
   border-radius: 10px;
-  background: rgba(68, 96, 153, 0.97);
-  border: 1px solid rgba(201, 138, 46, 0.3);
-  color: #ffffff;
+  background: linear-gradient(180deg, #fffdf7 0%, #f6efdf 100%);
+  border: 1px solid rgba(201, 138, 46, 0.45);
+  color: var(--text-0);
   font-size: 12.5px;
+  font-weight: 600;
   letter-spacing: 0.4px;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 34px rgba(90, 72, 40, 0.28);
   opacity: 0;
   pointer-events: none;
   transition: all 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
@@ -1318,19 +1407,25 @@ kbd {
   .result-icon { width: 50px; height: 50px; font-size: 22px; }
 
   /* 窄屏：技能按钮只留图标 + 倒计时，防止顶栏溢出换行 */
-  .stealth-btn { padding: 6px 8px; gap: 4px; margin-left: 2px; }
+  .stealth-btn { padding: 5px 6px; gap: 3px; margin-left: 2px; }
   .stealth-txt { display: none; }
-  .stealth-key { min-width: 24px; }
+  .stealth-key { min-width: 18px; font-size: 9px; }
 
-  /* 顶栏压缩：品牌与间距缩到最紧，保证一排放得下 */
-  .topbar { gap: 6px; padding: 0 8px; }
-  .brand { gap: 4px; }
+  /* 顶栏压缩：390px 宽度下总预算约 310px，
+     品牌文字隐藏（游戏内靠 HUD 就够），外观按钮收进首页 */
+  .topbar { gap: 5px; padding: 0 7px; }
+  .brand { gap: 0; }
   .brand .logo { display: none; }
-  .brand-text { display: none; }   /* 390px 级别顶栏放不下，游戏内靠 HUD 就够 */
-  .hud { gap: 4px; }
-  .hud-item { min-width: 0; padding: 3px 6px; }
-  .btn { padding: 7px 8px; font-size: 11px; }
-  #btn-rank, #btn-custom { font-size: 10.5px; padding: 7px 6px; }
+  .brand-text { display: none; }
+  .hud { gap: 3px; }
+  .hud-item { min-width: 0; padding: 3px 5px; }
+  .hud-label { font-size: 8px; letter-spacing: 0.6px; }
+  .hud-value { font-size: 12px; }
+  .btn { padding: 6px 7px; font-size: 10.5px; }
+  /* 排行榜用单字，省 13px；外观在开始页/设置里都有入口，游戏中先收起来 */
+  #btn-rank { font-size: 0; padding: 6px 8px; }
+  #btn-rank::before { content: '榜'; font-size: 11px; }
+  #btn-custom { display: none; }
 }
 
 @media (max-height: 620px) {

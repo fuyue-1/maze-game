@@ -8,6 +8,7 @@
  *   sprites.js     只认 DRAGON 配置对象，不硬编码颜色/体型
  *
  * 好处：加一套主题 = 加一个对象，不改任何绘制代码。
+ * 这也是答辩时可以讲的分层设计。
  */
 
 const Themes = (function () {
@@ -19,7 +20,7 @@ const Themes = (function () {
     daylight: {
       id: 'daylight',
       name: '晴石庭院',
-      desc: '明亮浅石，暖阳柔和（默认）',
+      desc: '明亮浅石，暖阳柔和',
       swatch: ['#e8dcc4', '#c4b49a', '#a89878'],
       palette: {
         bg: '#d9cfba',
@@ -57,7 +58,7 @@ const Themes = (function () {
     midnight: {
       id: 'midnight',
       name: '午夜蓝',
-      desc: '默认冷调，最耐看',
+      desc: '默认冷调，最耐看（默认）',
       swatch: ['#2A3A57', '#1A2538', '#0E1523'],
       palette: {
         bg: '#070a11',
@@ -226,12 +227,14 @@ const Themes = (function () {
   };
 
   // ==================== 状态 ====================
-  const LS_KEY = 'maze_settings_v1';
+  // v2：默认主题由「晴石庭院」改为「午夜蓝」，
+  // 升版本号让已保存旧设置的用户也能回到新的默认值（否则会被旧缓存顶掉）。
+  const LS_KEY = 'maze_settings_v2';
 
   let current = {
-    theme: 'dungeon',
+    theme: 'midnight',   // 默认午夜蓝（3D / 2D / 2.5D 三视角共用）
     skin: 'yogurt',
-    view: '2d'          // '2d' 俯视 / 'iso' 等距 2.5D / '3d' 真 3D
+    view: '2d'           // '2d' 俯视 / 'iso' 等距 2.5D / '3d' 真 3D
   };
 
   const listeners = [];
@@ -294,14 +297,26 @@ const Themes = (function () {
 
   /**
    * 把当前配置推给渲染层与角色层
-   * 注意顺序：先给 Sprites 换肤，再让 Renderer 换色并重建静态层
+   * ------------------------------------------------------------
+   * 四个接收方，一个都不能漏：
+   *   Sprites  —— 2D / 2.5D 的角色（Canvas 绘制）
+   *   Renderer —— 2D 场景；并由它转发给 Iso（2.5D）与 Iso3D（3D）
+   *   Iso3D    —— 3D 角色皮肤（2D/2.5D 由 Sprites 管，3D 是独立材质）
+   *
+   * 注意顺序：先给角色换肤，再让场景换色并重建静态层
    */
   function apply() {
     if (typeof Sprites !== 'undefined' && Sprites.applySkin) {
       Sprites.applySkin(getSkin());
     }
     if (typeof Renderer !== 'undefined' && Renderer.applyTheme) {
+      // Renderer 内部会把配色转发给 Iso（2.5D）和 Iso3D（3D），
+      // 所以这里不需要重复下发，避免出现"两处设置不同步"
       Renderer.applyTheme(getTheme().palette);
+    }
+    // 3D 角色是独立材质体系，不经过 Sprites，必须单独下发
+    if (typeof Iso3D !== 'undefined' && Iso3D.applySkin) {
+      Iso3D.applySkin(getSkin());
     }
   }
 

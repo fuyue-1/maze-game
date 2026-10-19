@@ -218,6 +218,22 @@ const Iso = (function () {
     return 'rgb(' + r + ',' + g2 + ',' + b + ')';
   }
 
+  /** 感知亮度（0~1） */
+  function lumaOf(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return 0;
+    const n = parseInt(m[1], 16);
+    return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  }
+
+  /** '#rrggbb' → 'rgba(r,g,b,a)'，供径向渐变复用主题色 */
+  function rgbaOf(hex, a) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return 'rgba(0,0,0,' + a + ')';
+    const n = parseInt(m[1], 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
   function isVisible(state, x, y) {
     if (!state.visibleSet) return true;
     return state.visibleSet.has(x + ',' + y);
@@ -340,13 +356,23 @@ const Iso = (function () {
     // 视口裁切半径（格），比屏幕对角线大一点就够了
     const cull = Math.ceil((Math.max(rect.width, rect.height) / cam.tw)) + cam.wallH + 3;
 
-    ctx.fillStyle = P.bg || '#d9cfba';
+    // 优先用雾色当底：与 2D 的"未探索区"保持同一色，三个视角观感统一；
+    // 直接铺 bg 会让暗主题下的空白处像一块虚空
+    ctx.fillStyle = P.fog || P.bg || '#d9cfba';
     ctx.fillRect(0, 0, rect.width, rect.height);
 
-    const floorCol = P.floor || '#b8ab90';
-    const floorAlt = P.floorAlt || '#c2b69c';
+    const bgCol = P.bg || '#d9cfba';
+    let floorCol = P.floor || '#b8ab90';
+    let floorAlt = P.floorAlt || '#c2b69c';
     const wallTop = P.wallTop || '#e8dcc4';
     const wallSide = P.wallSide || '#c4b49a';
+
+    // 暗主题（如午夜蓝）里 floor 和 bg 亮度太接近，地板会"融进背景"，
+    // 于是看起来只剩几堵墙飘在黑里 —— 这里按需把地板提亮一档，保证走廊可辨。
+    if (lumaOf(bgCol) < 0.3 && lumaOf(floorCol) - lumaOf(bgCol) < 0.08) {
+      floorCol = shade(floorCol, 1.75);
+      floorAlt = shade(floorAlt, 1.62);
+    }
 
     const pcx = state.player.renderX;
     const pcy = state.player.renderY;
@@ -675,10 +701,13 @@ const Iso = (function () {
 
     const c = project(state.player.renderX + 0.5, state.player.renderY + 0.5, 0, cam);
     const R = (state.viewRadius + 2.2) * cam.cellW;
+    // 光环颜色取当前主题背景色：暗主题边缘沉进夜色，亮主题边缘微微发灰，
+    // 不能再写死暖灰，否则午夜蓝主题下边缘会泛出一层土黄
+    const bg = (PALETTE && PALETTE.bg) || '#d9cfba';
     const g = a.createRadialGradient(c.x, c.y, R * 0.45, c.x, c.y, R);
-    g.addColorStop(0, 'rgba(120,105,80,0)');
-    g.addColorStop(0.7, 'rgba(120,105,80,0.10)');
-    g.addColorStop(1, 'rgba(120,105,80,0.22)');
+    g.addColorStop(0, rgbaOf(bg, 0));
+    g.addColorStop(0.7, rgbaOf(bg, 0.28));
+    g.addColorStop(1, rgbaOf(bg, 0.55));
     a.fillStyle = g;
     a.fillRect(0, 0, rect.width, rect.height);
 

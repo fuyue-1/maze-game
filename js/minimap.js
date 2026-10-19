@@ -27,7 +27,9 @@ const Minimap = (function () {
   let ox = 0, oy = 0;
   let cachedW = 0, cachedH = 0;
 
-  const COLORS = {
+  // 浅色主题用米白底（原来的样子），暗色主题用深蓝底 —— 
+  // 默认主题改成午夜蓝后，一块白底小地图在暗场景里像贴了张纸
+  const COLORS_LIGHT = {
     bg: 'rgba(252, 248, 238, 0.92)',
     border: 'rgba(180, 150, 100, 0.55)',
     exploredFloor: 'rgba(200, 186, 158, 0.9)',
@@ -37,8 +39,48 @@ const Minimap = (function () {
     playerRing: 'rgba(201, 138, 46, 0.4)',
     exit: '#FFD166',
     deadEnd: '#D9534F',
-    monster: '#D9534F'
+    monster: '#D9534F',
+    playerOutline: 'rgba(10,14,23,0.8)'
   };
+
+  const COLORS_DARK = {
+    bg: 'rgba(16, 22, 36, 0.9)',
+    border: 'rgba(120, 150, 200, 0.45)',
+    exploredFloor: 'rgba(86, 110, 148, 0.85)',
+    exploredWall: 'rgba(58, 78, 110, 0.95)',
+    currentPath: 'rgba(255, 217, 138, 0.45)',
+    player: '#FFD166',
+    playerRing: 'rgba(255, 209, 102, 0.42)',
+    exit: '#FFD166',
+    deadEnd: '#FF6B6B',
+    monster: '#FF6B6B',
+    playerOutline: 'rgba(0,0,0,0.75)'
+  };
+
+  // 每帧读取都免费（只是对象引用），所以不缓存，切主题后立刻生效
+  let COLORS = COLORS_LIGHT;
+
+  /** 根据当前主题背景亮度切换小地图配色 */
+  function syncPalette() {
+    let bg = '#d9cfba';
+    try {
+      if (typeof Themes !== 'undefined' && Themes.getTheme) {
+        const th = Themes.getTheme();
+        if (th && th.palette && th.palette.bg) bg = th.palette.bg;
+      }
+    } catch (e) { /* 忽略 */ }
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(bg).trim());
+    let lum = 0.8;
+    if (m) {
+      const n = parseInt(m[1], 16);
+      lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+    }
+    COLORS = lum < 0.35 ? COLORS_DARK : COLORS_LIGHT;
+
+    // 图例是 HTML，不在 canvas 里，需要单独打个标记让 CSS 反色
+    const wrap = document.getElementById('minimap-wrap');
+    if (wrap) wrap.classList.toggle('is-dark', COLORS === COLORS_DARK);
+  }
 
   function init(el) {
     canvas = el;
@@ -73,6 +115,7 @@ const Minimap = (function () {
    */
   function draw(state) {
     if (!ctx || !state.maze) return;
+    syncPalette();
     const maze = state.maze;
     if (state.maze.w !== cachedW) layout(maze);
 
@@ -218,7 +261,7 @@ const Minimap = (function () {
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(10,14,23,0.8)';
+      ctx.strokeStyle = COLORS.playerOutline;
       ctx.lineWidth = 1;
       ctx.stroke();
     }

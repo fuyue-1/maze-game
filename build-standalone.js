@@ -28,8 +28,11 @@ fs.writeFileSync(dest, out);
 console.log('standalone.html 生成完毕:', (fs.statSync(dest).size / 1024).toFixed(0) + ' KB');
 
 // 同步到工作区的单文件版
-const copy = '/workspace/迷宫逃生-单文件版.html';
+const copy = '/workspace/小龙迷宫逃生-单文件版.html';
 try {
+  if (fs.existsSync('/workspace/迷宫逃生-单文件版.html')) {
+    fs.unlinkSync('/workspace/迷宫逃生-单文件版.html');   // 清理旧名，避免两份混淆
+  }
   fs.copyFileSync(dest, copy);
   console.log('已同步到:', copy);
 } catch (e) {
