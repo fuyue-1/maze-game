@@ -8,7 +8,6 @@
  *   sprites.js     只认 DRAGON 配置对象，不硬编码颜色/体型
  *
  * 好处：加一套主题 = 加一个对象，不改任何绘制代码。
- * 这也是答辩时可以讲的分层设计。
  */
 
 const Themes = (function () {
@@ -230,7 +229,7 @@ const Themes = (function () {
   const LS_KEY = 'maze_settings_v1';
 
   let current = {
-    theme: 'daylight',
+    theme: 'dungeon',
     skin: 'yogurt',
     view: '2d'          // '2d' 俯视 / 'iso' 等距 2.5D / '3d' 真 3D
   };
