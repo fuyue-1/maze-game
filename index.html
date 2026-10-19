@@ -156,6 +156,7 @@
         <div class="btn-row">
           <button class="btn btn-primary" id="btn-resume">继续游戏</button>
           <button class="btn btn-ghost" id="btn-restart">重新开始</button>
+          <button class="btn btn-ghost" id="btn-home-pause">返回首页</button>
         </div>
       </div>
     </div>
@@ -323,6 +324,39 @@
   </div>
 </div>
 
+<!-- 收藏弹窗：由左下角按钮唤起 -->
+<div class="modal hidden" id="modal-star">
+  <div class="modal-mask" data-close="star"></div>
+  <div class="modal-body">
+    <div class="modal-head">
+      <h2>收藏项目</h2>
+      <button class="btn-close" data-close="star" aria-label="关闭">×</button>
+    </div>
+
+    <div class="star-big">
+      <span class="star-big-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 3.2l2.7 5.6 6.1.85-4.45 4.3 1.08 6.1L12 17.2l-5.43 2.85 1.08-6.1L3.2 9.65l6.1-.85z"
+                fill="#FFD166" stroke="#B8802A" stroke-width="1.1" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <b class="star-big-title">小龙迷宫逃生</b>
+      <span class="star-big-sub">迭代 DFS 迷宫生成 · BFS 怪物寻路 · 局部 BFS 视线迷雾</span>
+    </div>
+
+    <div class="star-url-row">
+      <code class="star-url" id="star-url">https://github.com/fuyue-1/maze-game</code>
+      <button class="btn btn-ghost btn-sm" id="star-copy">复制</button>
+    </div>
+
+    <div class="star-actions star-actions-block">
+      <a class="btn btn-primary" id="star-open"
+         href="https://github.com/fuyue-1/maze-game" target="_blank" rel="noopener">打开项目主页</a>
+      <button class="btn btn-ghost" id="star-open-help-btn">查看游戏说明</button>
+    </div>
+  </div>
+</div>
+
 <!-- 说明弹窗 -->
 <div class="modal hidden" id="modal-help">
   <div class="modal-mask" data-close="help"></div>
@@ -332,6 +366,27 @@
       <button class="btn-close" data-close="help" aria-label="关闭">×</button>
     </div>
     <div class="help-content">
+      <!-- 收藏卡片：放在说明最上方，玩家一眼就能看到项目地址 -->
+      <div class="star-card">
+        <div class="star-head">
+          <span class="star-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 3.2l2.7 5.6 6.1.85-4.45 4.3 1.08 6.1L12 17.2l-5.43 2.85 1.08-6.1L3.2 9.65l6.1-.85z"
+                    fill="#FFD166" stroke="#B8802A" stroke-width="1.1" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <div class="star-txt">
+            <b>喜欢这个游戏？收藏一下</b>
+            <span>github.com/fuyue-1/maze-game</span>
+          </div>
+        </div>
+        <div class="star-actions">
+          <a class="btn btn-primary btn-sm" id="star-open-help"
+             href="https://github.com/fuyue-1/maze-game" target="_blank" rel="noopener">打开项目主页</a>
+          <button class="btn btn-ghost btn-sm" id="star-copy-help">复制链接</button>
+        </div>
+      </div>
+
       <h3>目标</h3>
       <p>从左上角出发，在怪物追上你之前抵达右下角发光的 <b class="hl-gold">出口</b>。</p>
 
@@ -410,6 +465,15 @@
     </div>
   </div>
 </div>
+
+    <!-- 左下角：收藏项目入口 -->
+    <button class="star-fab" id="star-fab" title="收藏这个项目">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 3.2l2.7 5.6 6.1.85-4.45 4.3 1.08 6.1L12 17.2l-5.43 2.85 1.08-6.1L3.2 9.65l6.1-.85z"
+              fill="#FFD166" stroke="#B8802A" stroke-width="1.2" stroke-linejoin="round"/>
+      </svg>
+      <span class="star-fab-txt">收藏</span>
+    </button>
 
     <!-- 移动端虚拟方向键（ coarse 指针设备显示） -->
     <div class="dpad hidden" id="dpad" aria-label="方向控制">

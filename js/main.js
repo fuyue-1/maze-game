@@ -16,6 +16,9 @@
   // 排行榜展示条数：单一来源，避免"云端取 30、界面写 Top 10"这种不一致
   const TOP_N = (typeof BmobRank !== 'undefined' && BmobRank.CONFIG && BmobRank.CONFIG.TOP_N) || 30;
 
+  // 项目主页地址：收藏入口、说明卡片、复制按钮共用
+  const PROJECT_URL = 'https://github.com/fuyue-1/maze-game';
+
   // 当前选中的难度
   let currentDiff = 'normal';
   // 本局结果缓存（提交成绩时用）
@@ -53,6 +56,41 @@
 
   function show(el) { if (el) el.classList.remove('hidden'); }
   function hide(el) { if (el) el.classList.add('hidden'); }
+
+  /**
+   * 复制文本到剪贴板
+   * ------------------------------------------------------------
+   * 三级尝试（从现代到古老）：
+   *   1. navigator.clipboard  —— 需要 https 或 localhost，file:// 下不可用
+   *   2. 隐藏 textarea + execCommand('copy')  —— 兼容 file:// 与老浏览器
+   *   3. 都失败 → 提示玩家手动复制（并选中文本，方便 Ctrl+C）
+   * 单文件版常被双击用 file:// 打开，所以降级路径不是可选项，是必需项。
+   */
+  function copyText(text) {
+    const done = () => toast('网址已复制：' + text, 2400);
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+      return;
+    }
+    fallbackCopy(text, done);
+  }
+
+  function fallbackCopy(text, done) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) { done(); return; }
+    } catch (e) { /* 落到最后一步 */ }
+    toast('复制失败，请长按网址手动复制', 2600);
+  }
 
   let toastTimer = null;
   function toast(msg, ms = 2000) {
@@ -501,6 +539,15 @@
       Game.togglePause();
     });
 
+    // ---- 返回首页 ----
+    // 暂停界面也要能直接退出：Game.stop() 把 phase 从 'paused' 改回 'idle'
+    // 并取消 rAF，否则遮罩虽然隐藏了，循环还挂着。
+    const quitToHome = () => {
+      if (Game.getState().phase === 'paused') Game.stop();
+      goHome();
+    };
+    $('btn-home-pause').addEventListener('click', quitToHome);
+
     $('btn-resume').addEventListener('click', () => {
       Game.resume();
       hide($('overlay-pause'));
@@ -536,6 +583,29 @@
     $('btn-help').addEventListener('click', () => {
       if (Game.getState().phase === 'playing') Game.pause();
       show($('modal-help'));
+    });
+
+    // ---- 收藏项目 ----
+    $('star-fab').addEventListener('click', () => {
+      if (Game.getState().phase === 'playing') Game.pause();
+      show($('modal-star'));
+    });
+
+    // 复制链接（说明里和弹窗里各有一个按钮，复用同一段逻辑）
+    const copyUrl = () => copyText(PROJECT_URL);
+    $('star-copy').addEventListener('click', copyUrl);
+    $('star-copy-help').addEventListener('click', copyUrl);
+
+    // 弹窗里的"查看游戏说明"：关掉收藏弹窗、打开说明弹窗
+    $('star-open-help-btn').addEventListener('click', () => {
+      hide($('modal-star'));
+      show($('modal-help'));
+    });
+
+    // 点"打开项目主页"给个提示（链接本身是新标签打开，不打断当前局）
+    ['star-open', 'star-open-help'].forEach((id) => {
+      const el = $(id);
+      if (el) el.addEventListener('click', () => toast('已在新标签打开项目主页', 1600));
     });
 
     // ---- 关闭弹窗（点遮罩或 × ）----

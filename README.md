@@ -4,7 +4,7 @@
 
 核心亮点：**迭代 DFS 迷宫生成 · BFS 怪物寻路 · 局部 BFS + 视线追踪迷雾 · Canvas 矢量角色**
 
-> 🎮 在线试玩：`https://<你的用户名>.github.io/maze-escape/`
+> 🎮 在线试玩：`https://fuyue-1.github.io/maze-game/`
 
 ![技术栈](https://img.shields.io/badge/HTML5-Canvas-38e8b0)
 ![技术栈](https://img.shields.io/badge/JavaScript-ES6-ffd166)

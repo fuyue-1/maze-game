@@ -983,6 +983,179 @@ kbd {
   margin-bottom: 2px;
 }
 
+/* ---------------------------------------------------------------- 收藏项目 */
+/* 左下角浮动入口：和右下角方向键分列两侧，互不干扰 */
+.star-fab {
+  position: fixed;
+  left: 14px;
+  bottom: 16px;
+  z-index: 31;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 138, 46, 0.5);
+  background: linear-gradient(180deg, #fffdf7 0%, #f6efdf 100%);
+  box-shadow: 0 8px 22px rgba(90, 72, 40, 0.22);
+  color: var(--text-0);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.star-fab svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.star-fab:hover {
+  border-color: rgba(201, 138, 46, 0.85);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(90, 72, 40, 0.3);
+}
+
+.star-fab:hover svg { transform: rotate(-12deg) scale(1.12); }
+.star-fab:active { transform: translateY(1px) scale(0.98); }
+
+@media (max-width: 560px) {
+  .star-fab { left: 10px; bottom: 12px; padding: 7px 11px; }
+  .star-fab-txt { display: none; }   /* 手机只留星标，避免和方向键抢空间 */
+}
+
+/* 说明弹窗顶部的收藏卡片 */
+.star-card {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(201, 138, 46, 0.35);
+  background: linear-gradient(180deg, rgba(255, 250, 236, 0.95) 0%, rgba(248, 240, 224, 0.95) 100%);
+}
+
+.star-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.star-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(201, 138, 46, 0.14);
+}
+
+.star-icon svg { width: 21px; height: 21px; display: block; }
+
+.star-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.star-txt b { font-size: 12.5px; color: var(--text-0); }
+.star-txt span {
+  font-size: 10.5px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.star-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.star-actions-block {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+}
+
+.btn-sm { padding: 6px 12px; font-size: 11.5px; }
+
+/* 收藏弹窗：大星标 + 网址行 */
+.star-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.star-big-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(201, 138, 46, 0.14);
+  animation: starPop 2.4s ease-in-out infinite;
+}
+
+.star-big-icon svg { width: 38px; height: 38px; display: block; }
+
+@keyframes starPop {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+.star-big-title { font-size: 15px; color: var(--text-0); }
+
+.star-big-sub {
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.star-url-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.star-url {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(200, 178, 140, 0.95);
+  background: rgba(255, 253, 247, 0.96);
+  color: var(--text-1);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 注意：这条必须放在 .star-url 之后，否则会被上面的 nowrap 覆盖 */
+@media (max-width: 560px) {
+  /* 窄屏放不下一整行网址，允许折行，别用省略号藏掉关键信息 */
+  .star-url {
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.5;
+    font-size: 10.5px;
+    padding: 8px 10px;
+  }
+}
+
 /* ---------------------------------------------------------------- 虚拟方向键（触屏） */
 .dpad {
   display: none;
