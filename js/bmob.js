@@ -24,8 +24,8 @@ const BmobRank = (function () {
   // ==================== 配置区（改这里即可上线） ====================
   const CONFIG = {
     // 在 Bmob 控制台 → 应用 → 设置 → 应用密钥 中可以找到
-    APPLICATION_ID: '1ec481d6fe6ae1a524343cd2b0d60f0b',
-    REST_API_KEY: '71bf3513264c5ee5b8203cf610d0efb5',
+    APPLICATION_ID: 'BMOB_APP_ID',
+    REST_API_KEY: 'BMOB_REST_KEY',
     // rank 表名
     TABLE: 'rank',
     // SDK CDN（Bmob 官方）
