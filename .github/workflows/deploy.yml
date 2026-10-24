@@ -60,9 +60,9 @@ jobs:
           cp standalone.html _site/ 2>/dev/null || true
           # 防止再次漏文件：线上缺 three 就让构建失败，而不是静默降级
           test -f _site/vendor/three.min.js || { echo "✗ vendor/three.min.js 未进入站点目录"; exit 1; }
-          sed -i "s/BMOB_APP_ID/${{secrets.BMOB_APP_ID}}/g" ./_site/js/bmob.js
-          sed -i "s/BMOB_REST_KEY/${{secrets.BMOB_REST_KEY}}/g" ./_site/js/bmob.js
           
+          sed -i "s/'BMOB_APP_ID'/'${{ secrets.BMOB_APP_ID }}'/g" ./_site/js/bmob.js
+          sed -i "s/'BMOB_REST_KEY'/'${{ secrets.BMOB_REST_KEY }}'/g" ./_site/js/bmob.js
 
       - name: 打包站点
         uses: actions/upload-pages-artifact@v3
