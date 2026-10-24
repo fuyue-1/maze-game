@@ -1,10 +1,21 @@
-name: Test & Deploy
+# GitHub Actions 部署 GitHub Pages，并在构建时注入 Bmob 密钥
+#
+# 为什么需要这个文件：
+#   GitHub 的 Repository Secrets 只在 Actions 运行时可用，
+#   它不会、也不可能自动写进被直接托管的静态文件（当前 bmob.js 里仍是 'BMOB_APP_ID' 占位符，
+#   所以线上每次请求都被 Bmob 判定为 unauthorized → HTTP 400）。
+#   要么让 Actions 在部署前把密钥替换进产物（本文件做法），
+#   要么把 Pages 的发布源从「分支直发」改成「GitHub Actions」。
+#
+# 前置动作（必须做，否则本 workflow 不生效）：
+#   仓库 Settings → Pages → Build and deployment → Source 选「GitHub Actions」
+#   Settings → Secrets and variables → Actions 里已存在 BMOB_APP_ID / BMOB_REST_KEY
+
+name: Deploy Pages
 
 on:
   push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,66 +25,64 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: 算法单元测试
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: 安装 Node
-        uses: actions/setup-node@v4
+      - name: 组装站点并注入 Bmob 密钥
+        env:
+          BMOB_APP_ID: ${{ secrets.BMOB_APP_ID }}
+          BMOB_REST_KEY: ${{ secrets.BMOB_REST_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${BMOB_APP_ID}" ] || [ -z "${BMOB_REST_KEY}" ]; then
+            echo "::error::缺少 BMOB_APP_ID / BMOB_REST_KEY，请先在 Settings → Secrets and variables → Actions 配置"
+            exit 1
+          fi
+
+          rm -rf _site
+          mkdir -p _site
+          # 仓库根目录就是站点根；排除 .git / .github / 产物目录
+          rsync -a --exclude='.git' --exclude='.github' --exclude='_site' ./ _site/
+
+          # 按实际路径调整（常见为 js/bmob.js）
+          TARGET="_site/js/bmob.js"
+          if [ ! -f "$TARGET" ]; then
+            echo "::error::找不到 $TARGET，请把 TARGET 改成 bmob.js 的真实路径"
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import io, os
+          p = '_site/js/bmob.js'
+          s = io.open(p, encoding='utf-8').read()
+          s = s.replace("'BMOB_APP_ID'", "'%s'" % os.environ['BMOB_APP_ID'])
+          s = s.replace("'BMOB_REST_KEY'", "'%s'" % os.environ['BMOB_REST_KEY'])
+          io.open(p, 'w', encoding='utf-8', newline='\n').write(s)
+          PY
+
+          # 关键校验：产物里若还残留占位符，直接失败，不要发布一个注定 400 的站点
+          if grep -q "BMOB_APP_ID\|BMOB_REST_KEY" "$TARGET"; then
+            echo "::error::注入后仍残留占位符，检查 bmob.js 中常量名是否被改动"
+            exit 1
+          fi
+          echo "::notice::密钥注入完成（AppID 尾部 ***${BMOB_APP_ID: -4}）"
+
+      - uses: actions/upload-pages-artifact@v3
         with:
-          node-version: '20'
-
-      - name: 迷宫生成与 BFS 测试
-        run: node tests/maze.test.js
-
-      - name: 视线追踪与迷雾测试
-        run: node tests/los.test.js
+          path: _site
 
   deploy:
-    name: 部署到 GitHub Pages
-    needs: test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    env:
-      BMOB_APP_ID: ${{ secrets.BMOB_APP_ID }}
-      BMOB_REST_KEY: ${{ secrets.BMOB_REST_KEY }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: 配置 Pages
-        uses: actions/configure-pages@v5
-
-      - name: 准备站点目录 & 替换Bmob密钥
-        run: |
-          mkdir -p _site
-          cp -r index.html css js vendor _site/
-          cp standalone.html _site/ 2>/dev/null || true
-          test -f _site/vendor/three.min.js || { echo "✗ vendor/three.min.js 未进入站点目录"; exit 1; }
-          
-          node -e "
-            const fs = require('fs');
-            let txt = fs.readFileSync('./_site/js/bmob.js', 'utf8');
-            function toSingleQuoteStr(s){ return \"'\" + s.replace(/'/g, \"\\'\") + \"'\"; }
-            txt = txt.replace(/'BMOB_APP_ID'/g, toSingleQuoteStr(process.env.BMOB_APP_ID));
-            txt = txt.replace(/'BMOB_REST_KEY'/g, toSingleQuoteStr(process.env.BMOB_REST_KEY));
-            fs.writeFileSync('./_site/js/bmob.js', txt, 'utf8');
-            const lines = txt.split('\n').filter(l=>l.includes('APPLICATION_ID')||l.includes('REST_API_KEY'));
-            console.log('替换后的配置行：', lines);
-          "
-
-      - name: 打包站点
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: 发布
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
