@@ -58,12 +58,16 @@ jobs:
           cp standalone.html _site/ 2>/dev/null || true
           test -f _site/vendor/three.min.js || { echo "✗ vendor/three.min.js 未进入站点目录"; exit 1; }
           
-          # 使用 | 作为sed分隔符，避免key里带/导致替换失败
-          sed -i "s|'BMOB_APP_ID'|'${BMOB_APP_ID}'|g" ./_site/js/bmob.js
-          sed -i "s|'BMOB_REST_KEY'|'${BMOB_REST_KEY}'|g" ./_site/js/bmob.js
-          
-          # 【调试用，上线前注释掉！】打印文件片段看是否替换成功，secret会被***掩码，只能看有没有替换动作
-          # cat ./_site/js/bmob.js | grep BMOB
+          node -e "
+            const fs = require('fs');
+            let txt = fs.readFileSync('./_site/js/bmob.js', 'utf8');
+            function toSingleQuoteStr(s){ return \"'\" + s.replace(/'/g, \"\\'\") + \"'\"; }
+            txt = txt.replace(/'BMOB_APP_ID'/g, toSingleQuoteStr(process.env.BMOB_APP_ID));
+            txt = txt.replace(/'BMOB_REST_KEY'/g, toSingleQuoteStr(process.env.BMOB_REST_KEY));
+            fs.writeFileSync('./_site/js/bmob.js', txt, 'utf8');
+            const lines = txt.split('\n').filter(l=>l.includes('APPLICATION_ID')||l.includes('REST_API_KEY'));
+            console.log('替换后的配置行：', lines);
+          "
 
       - name: 打包站点
         uses: actions/upload-pages-artifact@v3
