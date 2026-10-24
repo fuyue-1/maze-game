@@ -17,7 +17,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # 第一步：跑算法单元测试，测试挂了就不发布
   test:
     name: 算法单元测试
     runs-on: ubuntu-latest
@@ -35,7 +34,6 @@ jobs:
       - name: 视线追踪与迷雾测试
         run: node tests/los.test.js
 
-  # 第二步：测试通过后发布到 GitHub Pages
   deploy:
     name: 部署到 GitHub Pages
     needs: test
@@ -44,30 +42,32 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      BMOB_APP_ID: ${{ secrets.BMOB_APP_ID }}
+      BMOB_REST_KEY: ${{ secrets.BMOB_REST_KEY }}
     steps:
       - uses: actions/checkout@v4
 
       - name: 配置 Pages
         uses: actions/configure-pages@v5
 
-      - name: 准备站点目录
+      - name: 准备站点目录 & 替换Bmob密钥
         run: |
           mkdir -p _site
-          # vendor/ 必须一起拷：three.min.js 是 3D 视角的运行时依赖，
-          # 漏了它 THREE 就是 undefined，线上 3D 会直接判定"WebGL 不可用"
           cp -r index.html css js vendor _site/
-          # 单文件版也一并发布，便于直接下载分享
           cp standalone.html _site/ 2>/dev/null || true
-          # 防止再次漏文件：线上缺 three 就让构建失败，而不是静默降级
           test -f _site/vendor/three.min.js || { echo "✗ vendor/three.min.js 未进入站点目录"; exit 1; }
           
-          sed -i "s/'BMOB_APP_ID'/'${{ secrets.BMOB_APP_ID }}'/g" ./_site/js/bmob.js
-          sed -i "s/'BMOB_REST_KEY'/'${{ secrets.BMOB_REST_KEY }}'/g" ./_site/js/bmob.js
+          # 使用 | 作为sed分隔符，避免key里带/导致替换失败
+          sed -i "s|'BMOB_APP_ID'|'${BMOB_APP_ID}'|g" ./_site/js/bmob.js
+          sed -i "s|'BMOB_REST_KEY'|'${BMOB_REST_KEY}'|g" ./_site/js/bmob.js
+          
+          # 【调试用，上线前注释掉！】打印文件片段看是否替换成功，secret会被***掩码，只能看有没有替换动作
+          # cat ./_site/js/bmob.js | grep BMOB
 
       - name: 打包站点
         uses: actions/upload-pages-artifact@v3
         with:
-          # 只发布游戏本体，不把 tests 和文档推上线上
           path: _site
 
       - name: 发布
