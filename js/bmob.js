@@ -48,7 +48,7 @@ const BmobRank = (function () {
     // 本地榜存储键
     LS_KEY: 'maze_local_rank_v1',
     // 排行榜展示条数：云端 limit 与本地榜上限都用它
-    TOP_N: 50,
+    TOP_N: 80,
     // 本地榜最多保留条数（展示 50 条，留 4 倍余量足够）
     MAX_LOCAL: 200,
     // 用户名最大长度
